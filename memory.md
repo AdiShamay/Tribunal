@@ -20,9 +20,10 @@
 - Frontend tribunal history sidebar implemented with populated, empty, and error states.
 - History sidebar selection restores saved tribunal runs into the main view.
 - Final Jest verification and clean production build completed; README instructions documented.
+- OpenRouter now discovers active free models dynamically with a fallback list.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
-- TDD testing protocol implemented: 25 tests written and passing.
+- TDD testing protocol implemented: 27 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -46,6 +47,7 @@
 - [x] Frontend history sidebar implemented with responsive case browsing.
 - [x] History selection restores charge sheet, opinions, arguments, and telemetry.
 - [x] Final test suite, production build, and README documentation verified.
+- [x] OpenRouter dynamic free-model discovery and fallback behavior verified.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.
