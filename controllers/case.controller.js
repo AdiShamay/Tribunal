@@ -47,6 +47,16 @@ async function createCase(req, res, next) {
   }
 }
 
+async function getCaseHistory(req, res, next) {
+  try {
+    const cases = await TribunalCase.find({});
+    return res.json(cases);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
-  createCase
+  createCase,
+  getCaseHistory
 };
