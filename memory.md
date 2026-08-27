@@ -15,9 +15,10 @@
 - Babel/Jest JSX and jsdom configuration added for frontend component testing.
 - React frontend connected to `/api/verdict` with response rendering and telemetry updates.
 - Application startup test isolated with an ephemeral port for reliable parallel Jest execution.
+- Backend `/api/verdict` aligned with the React response contract and independent judge telemetry.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
-- TDD testing protocol implemented: 18 tests written and passing.
+- TDD testing protocol implemented: 19 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -36,9 +37,10 @@
 - [x] JSX-aware Babel/Jest tooling configured and production frontend build verified.
 - [x] Frontend `/api/verdict` integration implemented with judge, advocate, loading, error, and budget states.
 - [x] Parallel Jest port collision fixed without changing production default port 3000.
+- [x] `/api/verdict` returns independent judges, advocates, and aggregated free-model telemetry.
 
 **Next Immediate Tasks:**
-- Align backend `/api/verdict` response generation with the frontend response contract.
+- Add richer persistence and history retrieval for tribunal runs.
 
 **Active Context/Blockers:**
-- None currently. Frontend `/api/verdict` integration is implemented and verified; backend response alignment remains next.
+- None currently. Frontend and backend verdict response contracts are aligned and verified.

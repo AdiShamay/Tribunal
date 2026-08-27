@@ -2,6 +2,7 @@ const express = require('express');
 const tribunalRoutes = require('./routes/tribunal.routes');
 const connectToDatabase = require('./services/database.service');
 const { createCase } = require('./controllers/case.controller');
+const { createVerdict } = require('./controllers/verdict.controller');
 const app = express();
 const port = 3000;
 
@@ -19,28 +20,7 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Verdict endpoint - receives advocacy positions and returns analysis
-app.post('/api/verdict', (req, res) => {
-  const { advocates, chargeSheet } = req.body;
-
-  // Basic validation
-  if (!advocates || !Array.isArray(advocates) || advocates.length === 0) {
-    return res.status(400).json({
-      error: 'advocates array is required'
-    });
-  }
-
-  // For now, return a basic response structure
-  // Full LLM integration will be added later
-  const verdict = {
-    status: 'pending',
-    receivedAt: new Date().toISOString(),
-    advocateCount: advocates.length,
-    chargeSheetSummary: chargeSheet ? chargeSheet.substring(0, 50) + '...' : 'No charge sheet provided'
-  };
-
-  res.json(verdict);
-});
+app.post('/api/verdict', createVerdict);
 
 // 404 handler for unknown routes
 app.use((req, res) => {
