@@ -19,6 +19,7 @@
 - Tribunal case history retrieval implemented through `GET /api/cases`.
 - Frontend tribunal history sidebar implemented with populated, empty, and error states.
 - History sidebar selection restores saved tribunal runs into the main view.
+- Final Jest verification and clean production build completed; README instructions documented.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
 - TDD testing protocol implemented: 25 tests written and passing.
@@ -44,9 +45,10 @@
 - [x] Tribunal case history retrieved from MongoDB through `GET /api/cases`.
 - [x] Frontend history sidebar implemented with responsive case browsing.
 - [x] History selection restores charge sheet, opinions, arguments, and telemetry.
+- [x] Final test suite, production build, and README documentation verified.
 
 **Next Immediate Tasks:**
-- Improve saved-run navigation and history metadata presentation.
+- Project complete; future work can improve saved-run navigation and metadata presentation.
 
 **Active Context/Blockers:**
-- None currently. Saved tribunal run selection and restoration are implemented and verified.
+- None currently. Tribunal implementation, tests, production build, and documentation are verified.
