@@ -52,4 +52,51 @@ describe('OpenRouter service', () => {
 
     expect(axios.post.mock.calls[0][1].model).toMatch(/:free$/);
   });
+
+  it('should prioritize well-known free models over other discovered free models', async () => {
+    axios.get.mockResolvedValue({
+      data: {
+        data: [
+          { id: 'inclusionai/ling-3.0-flash-fin:free' },
+          { id: 'google/gemma-2-9b-it:free' },
+          { id: 'meta-llama/llama-3.1-8b-instruct:free' }
+        ]
+      }
+    });
+    axios.post.mockResolvedValue({ data: { choices: [] } });
+
+    await openRouterService('Assess the case.');
+
+    expect(axios.post.mock.calls[0][1].model).toBe('meta-llama/llama-3.1-8b-instruct:free');
+  });
+
+  it.each([429, 500])('should retry with the next free model after HTTP %s', async (status) => {
+    axios.get.mockResolvedValue({
+      data: {
+        data: [
+          { id: 'meta-llama/llama-3.1-8b-instruct:free' },
+          { id: 'google/gemma-2-9b-it:free' }
+        ]
+      }
+    });
+    axios.post
+      .mockRejectedValueOnce({ response: { status } })
+      .mockResolvedValueOnce({ data: { choices: [] } });
+
+    await openRouterService('Assess the case.');
+
+    expect(axios.post).toHaveBeenCalledTimes(2);
+    expect(axios.post.mock.calls[1][1].model).toBe('google/gemma-2-9b-it:free');
+  });
+
+  it('should surface non-retryable completion errors', async () => {
+    axios.get.mockResolvedValue({
+      data: { data: [{ id: 'meta-llama/llama-3.1-8b-instruct:free' }] }
+    });
+    const error = { response: { status: 401 }, message: 'Unauthorized' };
+    axios.post.mockRejectedValue(error);
+
+    await expect(openRouterService('Assess the case.')).rejects.toBe(error);
+    expect(axios.post).toHaveBeenCalledTimes(1);
+  });
 });
