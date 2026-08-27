@@ -1,5 +1,6 @@
 const express = require('express');
 const tribunalRoutes = require('./routes/tribunal.routes');
+const connectToDatabase = require('./services/database.service');
 const app = express();
 const port = 3000;
 
@@ -54,4 +55,12 @@ app.use((err, req, res, next) => {
   });
 });
 
+async function startServer() {
+  // Waiting for MongoDB before accepting requests prevents the API from
+  // serving persistence-dependent operations before its datastore is ready.
+  await connectToDatabase();
+  return app.listen(port);
+}
+
 module.exports = app;
+module.exports.startServer = startServer;

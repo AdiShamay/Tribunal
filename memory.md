@@ -8,9 +8,10 @@
 - Advocate and judge API routes/controllers implemented and integrated with the OpenRouter service.
 - MongoDB connection utility implemented with Mongoose and `MONGODB_URI`.
 - TribunalCase Mongoose model implemented with charge sheet, advocate arguments, and judge verdicts.
+- Database connection integrated into application startup through `startServer()`.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
-- TDD testing protocol implemented: 11 tests written and passing.
+- TDD testing protocol implemented: 12 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -22,9 +23,10 @@
 - [x] Advocate and judge routes/controllers implemented with validation and telemetry responses.
 - [x] MongoDB connection utility implemented with environment-based configuration.
 - [x] TribunalCase Mongoose model implemented with independent advocate and judge records.
+- [x] Database connection integrated into application startup.
 
 **Next Immediate Tasks:**
-- Integrate the database connection into application startup.
+- Add persistence operations for tribunal cases.
 
 **Active Context/Blockers:**
-- None currently. OpenRouter service, advocate/judge routes, and database utility are implemented and verified.
+- None currently. OpenRouter service, API routes, database utility, model, and startup integration are implemented and verified.
