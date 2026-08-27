@@ -13,9 +13,11 @@
 - All API routes mounted in `app.js`, including `POST /api/cases`.
 - React frontend implemented for Case T-001 with responsive tribunal panels and telemetry.
 - Babel/Jest JSX and jsdom configuration added for frontend component testing.
+- React frontend connected to `/api/verdict` with response rendering and telemetry updates.
+- Application startup test isolated with an ephemeral port for reliable parallel Jest execution.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
-- TDD testing protocol implemented: 15 tests written and passing.
+- TDD testing protocol implemented: 18 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -32,9 +34,11 @@
 - [x] All API routes mounted and verified through the main Express application.
 - [x] React frontend implemented with charge sheet, model toggle, tribunal panels, states, and budget footer.
 - [x] JSX-aware Babel/Jest tooling configured and production frontend build verified.
+- [x] Frontend `/api/verdict` integration implemented with judge, advocate, loading, error, and budget states.
+- [x] Parallel Jest port collision fixed without changing production default port 3000.
 
 **Next Immediate Tasks:**
-- Connect frontend deliberation results to richer advocate and judge API responses.
+- Align backend `/api/verdict` response generation with the frontend response contract.
 
 **Active Context/Blockers:**
-- None currently. Backend and initial React frontend are implemented and verified; frontend result integration remains next.
+- None currently. Frontend `/api/verdict` integration is implemented and verified; backend response alignment remains next.

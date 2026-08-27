@@ -57,11 +57,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-async function startServer() {
+async function startServer(listenPort = port) {
   // Waiting for MongoDB before accepting requests prevents the API from
   // serving persistence-dependent operations before its datastore is ready.
   await connectToDatabase();
-  return app.listen(port);
+  return app.listen(listenPort);
 }
 
 module.exports = app;

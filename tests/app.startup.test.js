@@ -11,7 +11,7 @@ describe('Application startup', () => {
   it('should connect to MongoDB before starting the Express server', async () => {
     connectToDatabase.mockResolvedValue({ readyState: 1 });
 
-    const server = await app.startServer();
+    const server = await app.startServer(0);
 
     expect(connectToDatabase).toHaveBeenCalledTimes(1);
     expect(server).toBeDefined();

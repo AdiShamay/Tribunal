@@ -36,6 +36,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [judges, setJudges] = useState(initialJudges);
+  const [advocateResults, setAdvocateResults] = useState(advocates);
   const [telemetry, setTelemetry] = useState({ promptTokens: 0, completionTokens: 0, cost: 0 });
 
   async function commenceTribunal() {
@@ -43,14 +44,15 @@ function App() {
     setError('');
 
     try {
-      // The case request is kept behind one action so the UI can later switch
-      // between unified and multi-model orchestration without changing layout.
-      const response = await fetch('/api/cases', {
+      // The selected orchestration mode travels with the case so the backend
+      // can choose between one shared model and distinct model perspectives.
+      const response = await fetch('/api/verdict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          modelMode,
           chargeSheet,
-          advocateArguments: advocates,
+          advocates: advocateResults,
           judgePrompts: judges.map(({ name }) => ({ judge: name, prompt: chargeSheet }))
         })
       });
@@ -60,18 +62,24 @@ function App() {
       }
 
       const result = await response.json();
-      const verdicts = result.judgeVerdicts || [];
+      const verdicts = result.judges || result.judgeVerdicts || [];
       setJudges((currentJudges) => currentJudges.map((judge, index) => ({
         ...judge,
-        decision: verdicts[index]?.verdict || judge.decision,
+        decision: verdicts[index]?.decision || verdicts[index]?.verdict || judge.decision,
         reasoning: verdicts[index]?.reasoning || judge.reasoning
       })));
 
+      setAdvocateResults(result.advocates || advocateResults);
+      const responseTelemetry = result.telemetry || {};
       const usage = verdicts.reduce((total, verdict) => ({
         promptTokens: total.promptTokens + (verdict.usage?.promptTokens || 0),
         completionTokens: total.completionTokens + (verdict.usage?.completionTokens || 0),
         cost: total.cost + (verdict.usage?.estimatedCost || 0)
-      }), { promptTokens: 0, completionTokens: 0, cost: 0 });
+      }), {
+        promptTokens: responseTelemetry.promptTokens || 0,
+        completionTokens: responseTelemetry.completionTokens || 0,
+        cost: responseTelemetry.totalRunCost || 0
+      });
       setTelemetry(usage);
     } catch (requestError) {
       setError(requestError.message);
@@ -160,7 +168,7 @@ function App() {
           <span className="section-note">Four persuasive speeches</span>
         </div>
         <div className="advocate-grid">
-          {advocates.map((advocate) => (
+          {advocateResults.map((advocate) => (
             <article className="advocate-card" key={advocate.name}>
               <div className="advocate-topline"><span>{advocate.side}</span><span>ARGUMENT</span></div>
               <h3>{advocate.name}</h3>
