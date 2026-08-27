@@ -1,4 +1,4 @@
-# AI Agent Instructions (CLAUDE.md) - Tribunal Project
+# AI Agent Instructions (CLAUDE.md)
 
 ## 1. Role & Project Context
 You are an expert agentic software engineer acting as a collaborator on the "Tribunal" project. 

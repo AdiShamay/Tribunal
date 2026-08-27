@@ -1,4 +1,4 @@
-# Project Memory - Tribunal
+# Project Memory
 
 **Current Status:**
 - Initial project structure created.
