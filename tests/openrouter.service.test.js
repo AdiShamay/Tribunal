@@ -10,6 +10,10 @@ describe('OpenRouter service', () => {
     axios.post.mockReset();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should export a function that handles an OpenRouter API call with axios', async () => {
     const apiResponse = {
       data: {
@@ -98,5 +102,25 @@ describe('OpenRouter service', () => {
 
     await expect(openRouterService('Assess the case.')).rejects.toBe(error);
     expect(axios.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('should log the exact API response data when a completion fails', async () => {
+    axios.get.mockResolvedValue({
+      data: { data: [{ id: 'meta-llama/llama-3.1-8b-instruct:free' }] }
+    });
+    const error = {
+      response: {
+        status: 401,
+        data: { error: { message: 'Invalid API key' } }
+      }
+    };
+    axios.post.mockRejectedValue(error);
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(openRouterService('Assess the case.')).rejects.toBe(error);
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      JSON.stringify(error.response?.data, null, 2)
+    );
   });
 });

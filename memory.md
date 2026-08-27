@@ -22,9 +22,10 @@
 - Final Jest verification and clean production build completed; README instructions documented.
 - OpenRouter now discovers active free models dynamically with a fallback list.
 - OpenRouter prioritizes known free models and retries the next candidate on 429/500 responses.
+- OpenRouter completion failures now log the structured API response payload.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
-- TDD testing protocol implemented: 31 tests written and passing.
+- TDD testing protocol implemented: 32 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -50,6 +51,7 @@
 - [x] Final test suite, production build, and README documentation verified.
 - [x] OpenRouter dynamic free-model discovery and fallback behavior verified.
 - [x] OpenRouter priority ordering and 429/500 retry resilience verified.
+- [x] Structured OpenRouter API error-response logging verified.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.

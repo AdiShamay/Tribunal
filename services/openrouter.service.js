@@ -76,6 +76,7 @@ async function openRouterService(prompt) {
 
       return response;
     } catch (error) {
+      console.error(JSON.stringify(error.response?.data, null, 2));
       if (!isRetryableError(error) || model === models[models.length - 1]) {
         throw error;
       }
