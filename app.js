@@ -1,12 +1,14 @@
 const express = require('express');
 const tribunalRoutes = require('./routes/tribunal.routes');
 const connectToDatabase = require('./services/database.service');
+const { createCase } = require('./controllers/case.controller');
 const app = express();
 const port = 3000;
 
 // Middleware to parse JSON bodies
 app.use(express.json());
 app.use('/api', tribunalRoutes);
+app.post('/api/cases', createCase);
 
 // Health check endpoint
 app.get('/api/status', (req, res) => {
