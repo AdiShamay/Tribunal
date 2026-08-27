@@ -50,3 +50,13 @@ async function startServer(listenPort = port) {
 
 module.exports = app;
 module.exports.startServer = startServer;
+
+// Start the server only if this file is run directly (node app.js)
+if (require.main === module) {
+  startServer().then(() => {
+    console.log(`Tribunal server running on port ${port}`);
+  }).catch(error => {
+    console.error('Failed to connect to database and start server:', error);
+    process.exit(1);
+  });
+}
