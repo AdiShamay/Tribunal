@@ -1,0 +1,183 @@
+import { useState } from 'react';
+import './styles.css';
+
+const chargeSheet = `CASE T-001: The Realm v. Jon Snow
+
+Accused: Jon Snow
+Deceased: Daenerys Targaryen
+Act alleged: Jon intentionally killed Daenerys by stabbing her during a private meeting in the throne room after the fall of King's Landing.
+
+Agreed factual record:
+1. King's Landing had surrendered, but Daenerys then used Drogon against streets and civilians, causing destruction on a vast scale.
+2. Daenerys announced that the campaign of liberation would continue beyond King's Landing.
+3. Tyrion warned Jon that Daenerys would treat his sisters and other obstacles as enemies.
+4. Daenerys refused Jon's request for mercy and presented her own judgment as decisive.
+5. Daenerys was unarmed and not attacking Jon. He used their intimacy to get close enough to strike and did not first attempt detention or a public surrender of power.
+
+Issue: Was Jon's intentional killing justified as the necessary defense of others and the realm?
+
+Scope: Decide only justified or not justified, provide reasons, and impose no sentence.`;
+
+const initialJudges = [
+  { name: 'Barak', decision: 'Awaiting decision', reasoning: 'The judicial opinion will appear here after deliberation.' },
+  { name: 'Elon', decision: 'Awaiting decision', reasoning: 'The judicial opinion will appear here after deliberation.' },
+  { name: 'Shamgar', decision: 'Awaiting decision', reasoning: 'The judicial opinion will appear here after deliberation.' }
+];
+
+const advocates = [
+  { name: 'Jon Snow', side: 'Defense', argument: 'The defense argument will appear here after deliberation.' },
+  { name: 'Tyrion Lannister', side: 'Defense', argument: 'The defense argument will appear here after deliberation.' },
+  { name: 'Daenerys Targaryen', side: 'Prosecution', argument: 'The prosecution argument will appear here after deliberation.' },
+  { name: 'Grey Worm', side: 'Prosecution', argument: 'The prosecution argument will appear here after deliberation.' }
+];
+
+function App() {
+  const [modelMode, setModelMode] = useState('matrix');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [judges, setJudges] = useState(initialJudges);
+  const [telemetry, setTelemetry] = useState({ promptTokens: 0, completionTokens: 0, cost: 0 });
+
+  async function commenceTribunal() {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // The case request is kept behind one action so the UI can later switch
+      // between unified and multi-model orchestration without changing layout.
+      const response = await fetch('/api/cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chargeSheet,
+          advocateArguments: advocates,
+          judgePrompts: judges.map(({ name }) => ({ judge: name, prompt: chargeSheet }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('The tribunal could not complete its deliberation.');
+      }
+
+      const result = await response.json();
+      const verdicts = result.judgeVerdicts || [];
+      setJudges((currentJudges) => currentJudges.map((judge, index) => ({
+        ...judge,
+        decision: verdicts[index]?.verdict || judge.decision,
+        reasoning: verdicts[index]?.reasoning || judge.reasoning
+      })));
+
+      const usage = verdicts.reduce((total, verdict) => ({
+        promptTokens: total.promptTokens + (verdict.usage?.promptTokens || 0),
+        completionTokens: total.completionTokens + (verdict.usage?.completionTokens || 0),
+        cost: total.cost + (verdict.usage?.estimatedCost || 0)
+      }), { promptTokens: 0, completionTokens: 0, cost: 0 });
+      setTelemetry(usage);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <main className="app-shell">
+      <div className="top-rule" />
+      <header className="masthead">
+        <p className="eyebrow">CASE T-001 / THE REALM v. JON SNOW</p>
+        <h1>The Tribunal: Case T-001</h1>
+        <p className="subtitle">A recorded exercise in necessity, authority, and the limits of power.</p>
+      </header>
+
+      <section className="case-input">
+        <div className="section-kicker">01 / The record</div>
+        <h2 id="charge-sheet-heading">Charge Sheet</h2>
+        <label className="sr-only" htmlFor="charge-sheet">Charge sheet</label>
+        <textarea id="charge-sheet" value={chargeSheet} readOnly />
+      </section>
+
+      <section className="command-deck" aria-labelledby="command-heading">
+        <div>
+          <div className="section-kicker">02 / The protocol</div>
+          <h2 id="command-heading">Commence the hearing</h2>
+        </div>
+        <fieldset className="model-toggle">
+          <legend>Model configuration</legend>
+          <label className={modelMode === 'unified' ? 'toggle-option selected' : 'toggle-option'}>
+            <input
+              type="radio"
+              name="model-mode"
+              value="unified"
+              checked={modelMode === 'unified'}
+              onChange={(event) => setModelMode(event.target.value)}
+            />
+            <span>Unified Model</span>
+          </label>
+          <label className={modelMode === 'matrix' ? 'toggle-option selected' : 'toggle-option'}>
+            <input
+              type="radio"
+              name="model-mode"
+              value="matrix"
+              checked={modelMode === 'matrix'}
+              onChange={(event) => setModelMode(event.target.value)}
+            />
+            <span>Multi-Model Matrix</span>
+          </label>
+        </fieldset>
+        <button className="commence-button" type="button" onClick={commenceTribunal} disabled={isLoading}>
+          {isLoading ? 'Deliberation in progress' : 'Commence Tribunal'}
+          <span aria-hidden="true">↗</span>
+        </button>
+        {isLoading && <p className="loading-message" role="status">The Tribunal is deliberating...</p>}
+      </section>
+
+      {error && <div className="error-banner" role="alert">{error}</div>}
+
+      <section className="protocol-section" aria-labelledby="judicial-panel-heading">
+        <div className="section-kicker">03 / The opinions</div>
+        <div className="section-title-row">
+          <h2 id="judicial-panel-heading">Judicial Panel</h2>
+          <span className="section-note">Three independent readings</span>
+        </div>
+        <div className="judge-grid">
+          {judges.map((judge) => (
+            <article className="judge-card" key={judge.name}>
+              <div className="card-index">JUDICIAL OPINION</div>
+              <h3>{judge.name}</h3>
+              <div className="decision-label">Decision</div>
+              <p className="decision">{judge.decision}</p>
+              <div className="reasoning-label">Reasoning</div>
+              <p className="reasoning">{judge.reasoning}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="protocol-section advocates-section" aria-labelledby="advocate-arguments-heading">
+        <div className="section-kicker">04 / The voices</div>
+        <div className="section-title-row">
+          <h2 id="advocate-arguments-heading">Advocate Arguments</h2>
+          <span className="section-note">Four persuasive speeches</span>
+        </div>
+        <div className="advocate-grid">
+          {advocates.map((advocate) => (
+            <article className="advocate-card" key={advocate.name}>
+              <div className="advocate-topline"><span>{advocate.side}</span><span>ARGUMENT</span></div>
+              <h3>{advocate.name}</h3>
+              <p>{advocate.argument}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <footer className="budget-footer" aria-label="Budget telemetry">
+        <div className="budget-heading"><span className="section-kicker">05 / Telemetry</span><strong>Run budget</strong></div>
+        <div className="metric"><span>Total Prompt Tokens</span><strong>{telemetry.promptTokens}</strong></div>
+        <div className="metric"><span>Total Completion Tokens</span><strong>{telemetry.completionTokens}</strong></div>
+        <div className="metric cost-metric"><span>Total Run Cost</span><strong>${telemetry.cost.toFixed(2)}</strong></div>
+      </footer>
+    </main>
+  );
+}
+
+export default App;
