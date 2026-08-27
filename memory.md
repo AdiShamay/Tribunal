@@ -6,9 +6,10 @@
 - OpenRouter API key secured in `.env` (excluded via `.gitignore`).
 - OpenRouter service implemented with Axios, a free model, and token/cost tracking.
 - Advocate and judge API routes/controllers implemented and integrated with the OpenRouter service.
+- MongoDB connection utility implemented with Mongoose and `MONGODB_URI`.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
-- TDD testing protocol implemented: 7 tests written and passing.
+- TDD testing protocol implemented: 8 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -18,9 +19,10 @@
 - [x] Express server created with basic endpoints for tribunal simulation.
 - [x] OpenRouter Axios service implemented with free-model selection and usage tracking.
 - [x] Advocate and judge routes/controllers implemented with validation and telemetry responses.
+- [x] MongoDB connection utility implemented with environment-based configuration.
 
 **Next Immediate Tasks:**
-- Create advocate/prosecution/judge endpoint routes.
+- Integrate the database connection into application startup.
 
 **Active Context/Blockers:**
-- None currently. OpenRouter service and advocate/judge routes are implemented and verified.
+- None currently. OpenRouter service, advocate/judge routes, and database utility are implemented and verified.
