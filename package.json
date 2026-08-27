@@ -1,0 +1,32 @@
+{
+  "name": "tribunal",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000T\u0000r\u0000i\u0000b\u0000u\u0000n\u0000a\u0000l\u0000 \u0000P\u0000r\u0000o\u0000j\u0000e\u0000c\u0000t\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AdiShamay/Tribunal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AdiShamay/Tribunal/issues"
+  },
+  "homepage": "https://github.com/AdiShamay/Tribunal#readme",
+  "dependencies": {
+    "axios": "^1.20.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.9.4"
+  },
+  "devDependencies": {
+    "chai": "^6.2.2",
+    "jest": "^30.4.2",
+    "mocha": "^11.8.0"
+  }
+}

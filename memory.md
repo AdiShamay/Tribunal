@@ -5,14 +5,20 @@
 - GitHub repository initialized and connected.
 - OpenRouter API key secured in `.env` (excluded via `.gitignore`).
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
+- Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
+- TDD testing protocol implemented: 3 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
 - [x] Context files creation (`CLAUDE.md`, `.env`, `.gitignore`).
+- [x] Project dependencies installed (express, mongoose, axios, dotenv).
+- [x] Test-driven development: wrote failing tests first, implemented code to make them pass.
+- [x] Express server created with basic endpoints for tribunal simulation.
 
-**Next Immediate Task:**
-- Draft the canonical Charge Sheet for Jon Snow's case as a strict specification.
-- Define the 7 agent system prompts (4 representatives, 3 judges).
+**Next Immediate Tasks:**
+- Implement OpenRouter API integration with free model tracking.
+- Create advocate/prosecution/judge endpoint routes.
+- Implement token usage and cost tracking for OpenRouter calls.
 
 **Active Context/Blockers:**
-- None currently. Awaiting Charge Sheet specification.
+- None currently. awaiting OpenRouter integration implementation.
