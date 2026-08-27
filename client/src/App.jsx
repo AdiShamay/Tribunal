@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './styles.css';
 
 const chargeSheet = `CASE T-001: The Realm v. Jon Snow
@@ -37,7 +37,26 @@ function App() {
   const [error, setError] = useState('');
   const [judges, setJudges] = useState(initialJudges);
   const [advocateResults, setAdvocateResults] = useState(advocates);
+  const [caseHistory, setCaseHistory] = useState([]);
   const [telemetry, setTelemetry] = useState({ promptTokens: 0, completionTokens: 0, cost: 0 });
+
+  useEffect(() => {
+    async function loadCaseHistory() {
+      try {
+        const response = await fetch('/api/cases');
+        if (!response.ok) {
+          throw new Error('History service unavailable');
+        }
+
+        const history = await response.json();
+        setCaseHistory(Array.isArray(history) ? history : []);
+      } catch (historyError) {
+        setError(historyError.message);
+      }
+    }
+
+    loadCaseHistory();
+  }, []);
 
   async function commenceTribunal() {
     setIsLoading(true);
@@ -89,9 +108,32 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <div className="top-rule" />
-      <header className="masthead">
+    <div className="page-layout">
+      <aside className="history-sidebar" aria-label="Tribunal history">
+        <div className="section-kicker">Archive / Previous runs</div>
+        <h2>Tribunal History</h2>
+        {caseHistory.length === 0 ? (
+          <p className="history-empty">No previous tribunal cases.</p>
+        ) : (
+          <div className="history-list">
+            {caseHistory.map((tribunalCase) => (
+              <article className="history-item" key={tribunalCase._id}>
+                <div className="history-case-id">{tribunalCase._id}</div>
+                <h3>{tribunalCase.chargeSheet}</h3>
+                {tribunalCase.judgeVerdicts?.map((verdict) => (
+                  <p className="history-verdict" key={`${tribunalCase._id}-${verdict.judge}`}>
+                    {verdict.judge} / {verdict.verdict}
+                  </p>
+                ))}
+              </article>
+            ))}
+          </div>
+        )}
+      </aside>
+
+      <main className="app-shell">
+        <div className="top-rule" />
+        <header className="masthead">
         <p className="eyebrow">CASE T-001 / THE REALM v. JON SNOW</p>
         <h1>The Tribunal: Case T-001</h1>
         <p className="subtitle">A recorded exercise in necessity, authority, and the limits of power.</p>
@@ -178,13 +220,14 @@ function App() {
         </div>
       </section>
 
-      <footer className="budget-footer" aria-label="Budget telemetry">
+        <footer className="budget-footer" aria-label="Budget telemetry">
         <div className="budget-heading"><span className="section-kicker">05 / Telemetry</span><strong>Run budget</strong></div>
         <div className="metric"><span>Total Prompt Tokens</span><strong>{telemetry.promptTokens}</strong></div>
         <div className="metric"><span>Total Completion Tokens</span><strong>{telemetry.completionTokens}</strong></div>
         <div className="metric cost-metric"><span>Total Run Cost</span><strong>${telemetry.cost.toFixed(2)}</strong></div>
-      </footer>
-    </main>
+        </footer>
+      </main>
+    </div>
   );
 }
 
