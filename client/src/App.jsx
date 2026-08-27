@@ -35,10 +35,29 @@ function App() {
   const [modelMode, setModelMode] = useState('matrix');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [activeChargeSheet, setActiveChargeSheet] = useState(chargeSheet);
   const [judges, setJudges] = useState(initialJudges);
   const [advocateResults, setAdvocateResults] = useState(advocates);
   const [caseHistory, setCaseHistory] = useState([]);
   const [telemetry, setTelemetry] = useState({ promptTokens: 0, completionTokens: 0, cost: 0 });
+
+  function restoreCase(tribunalCase) {
+    setActiveChargeSheet(tribunalCase.chargeSheet);
+    setJudges((currentJudges) => currentJudges.map((judge, index) => {
+      const savedVerdict = tribunalCase.judgeVerdicts?.[index];
+      return savedVerdict ? {
+        name: savedVerdict.judge || judge.name,
+        decision: savedVerdict.verdict || judge.decision,
+        reasoning: savedVerdict.reasoning || judge.reasoning
+      } : judge;
+    }));
+    setAdvocateResults(tribunalCase.advocateArguments || advocates);
+    setTelemetry({
+      promptTokens: tribunalCase.telemetry?.promptTokens || 0,
+      completionTokens: tribunalCase.telemetry?.completionTokens || 0,
+      cost: tribunalCase.telemetry?.totalRunCost || 0
+    });
+  }
 
   useEffect(() => {
     async function loadCaseHistory() {
@@ -70,9 +89,9 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           modelMode,
-          chargeSheet,
+          chargeSheet: activeChargeSheet,
           advocates: advocateResults,
-          judgePrompts: judges.map(({ name }) => ({ judge: name, prompt: chargeSheet }))
+          judgePrompts: judges.map(({ name }) => ({ judge: name, prompt: activeChargeSheet }))
         })
       });
 
@@ -117,7 +136,13 @@ function App() {
         ) : (
           <div className="history-list">
             {caseHistory.map((tribunalCase) => (
-              <article className="history-item" key={tribunalCase._id}>
+              <button
+                className="history-item"
+                key={tribunalCase._id}
+                type="button"
+                aria-label={`Restore ${tribunalCase._id}`}
+                onClick={() => restoreCase(tribunalCase)}
+              >
                 <div className="history-case-id">{tribunalCase._id}</div>
                 <h3>{tribunalCase.chargeSheet}</h3>
                 {tribunalCase.judgeVerdicts?.map((verdict) => (
@@ -125,7 +150,7 @@ function App() {
                     {verdict.judge} / {verdict.verdict}
                   </p>
                 ))}
-              </article>
+              </button>
             ))}
           </div>
         )}
@@ -143,7 +168,7 @@ function App() {
         <div className="section-kicker">01 / The record</div>
         <h2 id="charge-sheet-heading">Charge Sheet</h2>
         <label className="sr-only" htmlFor="charge-sheet">Charge sheet</label>
-        <textarea id="charge-sheet" value={chargeSheet} readOnly />
+        <textarea id="charge-sheet" value={activeChargeSheet} readOnly />
       </section>
 
       <section className="command-deck" aria-labelledby="command-heading">

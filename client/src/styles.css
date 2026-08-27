@@ -22,7 +22,8 @@ button { cursor: pointer; }
 .history-sidebar h2 { margin: 8px 0 22px; font-size: 1.55rem; font-weight: 400; }
 .history-empty { color: #53615a; line-height: 1.5; }
 .history-list { display: grid; gap: 12px; }
-.history-item { padding: 14px; border-left: 3px solid #c95135; background: #f3f0e9; }
+.history-item { width: 100%; padding: 14px; border: 0; border-left: 3px solid #c95135; color: inherit; text-align: left; background: #f3f0e9; }
+.history-item:hover, .history-item:focus-visible { background: #fffaf0; outline: 2px solid #c95135; outline-offset: 2px; }
 .history-case-id { color: #c95135; font-family: 'Trebuchet MS', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .history-item h3 { margin: 8px 0 14px; font-size: 1rem; line-height: 1.25; font-weight: 400; }
 .history-verdict { margin: 6px 0 0; color: #53615a; font-family: 'Trebuchet MS', sans-serif; font-size: 0.72rem; line-height: 1.4; }

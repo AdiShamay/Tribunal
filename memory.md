@@ -18,9 +18,10 @@
 - Backend `/api/verdict` aligned with the React response contract and independent judge telemetry.
 - Tribunal case history retrieval implemented through `GET /api/cases`.
 - Frontend tribunal history sidebar implemented with populated, empty, and error states.
+- History sidebar selection restores saved tribunal runs into the main view.
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
-- TDD testing protocol implemented: 24 tests written and passing.
+- TDD testing protocol implemented: 25 tests written and passing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -42,9 +43,10 @@
 - [x] `/api/verdict` returns independent judges, advocates, and aggregated free-model telemetry.
 - [x] Tribunal case history retrieved from MongoDB through `GET /api/cases`.
 - [x] Frontend history sidebar implemented with responsive case browsing.
+- [x] History selection restores charge sheet, opinions, arguments, and telemetry.
 
 **Next Immediate Tasks:**
-- Add history item selection to restore a previous tribunal run.
+- Improve saved-run navigation and history metadata presentation.
 
 **Active Context/Blockers:**
-- None currently. Backend history retrieval and frontend browsing are implemented and verified.
+- None currently. Saved tribunal run selection and restoration are implemented and verified.
