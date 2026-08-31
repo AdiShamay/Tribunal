@@ -82,6 +82,20 @@ function normalizeHistoryMode(value) {
   return 'Multi-Model Matrix';
 }
 
+function mergeJudgesWithDefaults(entries) {
+  return initialJudges.map((defaultJudge, index) => {
+    const entry = entries.find((candidate) => candidate?.name === defaultJudge.name) || entries[index];
+    return entry ? normalizeStoredJudge(entry, index) : defaultJudge;
+  });
+}
+
+function mergeAdvocatesWithDefaults(entries) {
+  return advocates.map((defaultAdvocate, index) => {
+    const entry = entries.find((candidate) => candidate?.name === defaultAdvocate.name) || entries[index];
+    return entry ? normalizeStoredAdvocate(entry, index) : defaultAdvocate;
+  });
+}
+
 function App() {
   const [modelMode, setModelMode] = useState('matrix');
   const [isLoading, setIsLoading] = useState(false);
@@ -153,11 +167,11 @@ function App() {
 
       const result = await response.json();
       const verdicts = Array.isArray(result.judges) ? result.judges : (Array.isArray(result.judgeVerdicts) ? result.judgeVerdicts : []);
-      const normalizedJudges = verdicts.map(normalizeStoredJudge);
+      const normalizedJudges = mergeJudgesWithDefaults(verdicts);
       setJudges(normalizedJudges);
 
       const nextAdvocates = Array.isArray(result.advocates)
-        ? result.advocates.map((advocate, index) => normalizeStoredAdvocate(advocate, index))
+        ? mergeAdvocatesWithDefaults(result.advocates)
         : advocateResults;
       setAdvocateResults(nextAdvocates);
       const responseTelemetry = result.telemetry || {};

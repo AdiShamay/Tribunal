@@ -155,6 +155,9 @@ describe('OpenRouter service', () => {
       })
     ]));
     expect(requestBody.messages[0].content).toContain('"judges"');
+    expect(requestBody.messages[0].content).toContain('EXACTLY 3 judges named: Barak, Elon, Shamgar');
+    expect(requestBody.messages[0].content).toContain('EXACTLY 4 advocates named: Jon Snow, Tyrion Lannister, Daenerys Targaryen, Grey Worm');
+    expect(requestBody.messages[0].content).toContain('fewer than 7 participants is a failure');
     expect(requestBody.messages[0].content).toContain('50 words');
     expect(requestBody.messages[0].content).toContain('80 words');
   });

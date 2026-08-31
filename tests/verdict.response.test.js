@@ -136,6 +136,32 @@ describe('POST /api/verdict response contract', () => {
     }));
   });
 
+  it('should reject an incomplete unified response instead of persisting it', async () => {
+    openRouterService.mockResolvedValue({
+      data: {
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              judges: [{ name: 'Barak', verdict: 'Justified.' }],
+              advocates: [{ name: 'Jon Snow', argument: 'The realm required action.' }]
+            })
+          }
+        }]
+      },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'unified',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(TribunalCase.create).not.toHaveBeenCalled();
+  });
+
   it('should aggregate matrix-mode judge and advocate JSON payloads with role-specific constraints', async () => {
     openRouterService.mockImplementation(async (prompt, role) => {
       if (role === 'judge') {

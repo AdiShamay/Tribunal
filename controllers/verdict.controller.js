@@ -3,6 +3,7 @@ const openRouterService = require('../services/openrouter.service');
 const TribunalCase = require('../models/tribunal-case.model');
 
 const judgeNames = ['Barak', 'Elon', 'Shamgar'];
+const advocateNames = ['Jon Snow', 'Tyrion Lannister', 'Daenerys Targaryen', 'Grey Worm'];
 
 function getModelContent(response) {
   const content = response?.data?.choices?.[0]?.message?.content;
@@ -129,6 +130,19 @@ function requireStructuredArray(value, field, minimumLength) {
   return value;
 }
 
+function requireExactParticipants(entries, expectedNames, field) {
+  if (entries.length !== expectedNames.length || entries.some((entry) => !expectedNames.includes(entry?.name))) {
+    throw new Error(`OpenRouter response did not contain the exact required ${field} participants.`);
+  }
+
+  const names = entries.map((entry) => entry.name);
+  if (new Set(names).size !== expectedNames.length) {
+    throw new Error(`OpenRouter response contained duplicate ${field} participants.`);
+  }
+
+  return entries;
+}
+
 async function createVerdict(req, res, next) {
   const {
     modelMode = 'matrix',
@@ -149,8 +163,8 @@ async function createVerdict(req, res, next) {
     if (modelMode === 'unified') {
       const response = await openRouterService(`${chargeSheet}\n\nReturn all tribunal output as JSON with judges and advocates arrays. Include the four named advocates in the final output.`);
       const parsed = parseJsonPayload(getModelContent(response));
-      const incomingJudges = requireStructuredArray(parsed?.judges, 'judges', 1);
-      const incomingAdvocates = requireStructuredArray(parsed?.advocates, 'advocates', 1);
+      const incomingJudges = requireExactParticipants(requireStructuredArray(parsed?.judges, 'judges', 1), judgeNames, 'judge');
+      const incomingAdvocates = requireExactParticipants(requireStructuredArray(parsed?.advocates, 'advocates', 1), advocateNames, 'advocate');
 
       judgeResults = incomingJudges.map(normalizeJudgeData);
       normalizedAdvocates = incomingAdvocates.map(normalizeAdvocateData);

@@ -82,4 +82,26 @@ describe('Tribunal API integration', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Tribunal service unavailable');
   });
+
+  it('should preserve all judge and advocate slots when the API returns incomplete arrays', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        judges: [{ name: 'Barak', decision: 'Justified', reasoning: 'Returned opinion.' }],
+        advocates: [{ name: 'Jon Snow', argument: 'Returned argument.' }],
+        telemetry: { promptTokens: 1, completionTokens: 1, totalRunCost: 0 }
+      })
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /commence tribunal/i }));
+
+    expect(await screen.findByText('Returned opinion.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Elon' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Shamgar' })).toBeInTheDocument();
+    expect(screen.getByText('Returned argument.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tyrion Lannister' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Daenerys Targaryen' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Grey Worm' })).toBeInTheDocument();
+  });
 });

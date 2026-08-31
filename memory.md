@@ -34,6 +34,8 @@
 - Actual AI response persistence fixed: both unified and matrix verdict flows now require structured OpenRouter JSON, map generated judge and advocate content to judgeVerdicts and advocateArguments, reject incomplete responses instead of saving placeholders, and persist before res.json().
 - History timestamps now use the Israeli/European 24-hour format DD/MM/YYYY HH:mm without seconds.
 - Telemetry persistence fixed: TribunalCase stores promptTokens, completionTokens, and cost; verdict execution passes the aggregated values into MongoDB, and selecting a saved case restores them to the frontend budget footer.
+- Unified Model participant enforcement fixed: the system prompt now requires exactly Barak, Elon, and Shamgar plus Jon Snow, Tyrion Lannister, Daenerys Targaryen, and Grey Worm; incomplete, duplicate, or hallucinated participant lists are rejected before persistence.
+- Frontend incomplete-response fallback fixed: the Judges and Advocates panels merge returned data into the canonical seven participant slots so a partial response cannot make UI participants disappear.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -62,6 +64,7 @@
 - [x] Structured OpenRouter API error-response logging verified.
 - [x] Actual structured LLM judge and advocate data persisted to MongoDB and verified with regression coverage.
 - [x] European history date formatting and telemetry persistence/restoration verified with focused and full test coverage.
+- [x] Unified participant-name/count enforcement and frontend seven-slot fallback verified with 14 suites and 39 tests.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.

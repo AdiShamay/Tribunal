@@ -41,6 +41,9 @@ JSON-only output is mandatory. Return only valid JSON with no markdown fences, n
 The response must match this exact schema:
 { "judges": [ { "name": "...", "verdict": "..." } ], "advocates": [ { "name": "...", "argument": "..." } ] }
 Rules:
+- You must return EXACTLY 3 judges named: Barak, Elon, Shamgar.
+- You must return EXACTLY 4 advocates named: Jon Snow, Tyrion Lannister, Daenerys Targaryen, Grey Worm.
+- Returning fewer than 7 participants is a failure. Never invent, replace, or omit a required participant.
 - Every judge entry must include exactly a name and a verdict string.
 - Every advocate entry must include exactly a name and an argument string.
 - judge verdicts MUST NOT exceed 50 words each.
