@@ -123,4 +123,39 @@ describe('OpenRouter service', () => {
       JSON.stringify(error.response?.data, null, 2)
     );
   });
+
+  it('should send a strict JSON-only system prompt with schema and length constraints', async () => {
+    axios.get.mockResolvedValue({
+      data: { data: [{ id: 'meta-llama/llama-3.1-8b-instruct:free' }] }
+    });
+    axios.post.mockResolvedValue({
+      data: {
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              judges: [{ name: 'Barak', verdict: 'Justified because the threat was imminent.' }],
+              advocates: [{ name: 'Jon Snow', argument: 'The realm needed immediate action.' }]
+            })
+          }
+        }]
+      }
+    });
+
+    await openRouterService('Assess the case.');
+
+    const requestBody = axios.post.mock.calls[0][1];
+    expect(requestBody.messages).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        role: 'system',
+        content: expect.stringContaining('JSON-only')
+      }),
+      expect.objectContaining({
+        role: 'user',
+        content: expect.stringContaining('Assess the case.')
+      })
+    ]));
+    expect(requestBody.messages[0].content).toContain('"judges"');
+    expect(requestBody.messages[0].content).toContain('50 words');
+    expect(requestBody.messages[0].content).toContain('80 words');
+  });
 });

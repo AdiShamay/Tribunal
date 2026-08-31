@@ -11,6 +11,19 @@ const FALLBACK_FREE_MODELS = [
   ...PRIORITIZED_FREE_MODELS,
   'mistralai/mistral-7b-instruct:free'
 ];
+const JSON_ONLY_SYSTEM_PROMPT = `You are the Tribunal's legal reasoning engine.
+JSON-only output is mandatory. Return only valid JSON with no markdown fences, no commentary, no analysis, no extra text.
+The response must match this exact schema:
+{ "judges": [ { "name": "...", "verdict": "..." } ], "advocates": [ { "name": "...", "argument": "..." } ] }
+Rules:
+- Every judge entry must include exactly a name and a verdict string.
+- Every advocate entry must include exactly a name and an argument string.
+- judge verdicts MUST NOT exceed 50 words each.
+- advocate arguments MUST NOT exceed 80 words each.
+- verdict text must state either 'Justified' or 'Not Justified' in the first clause, then give a brief reason.
+- Use the provided case facts and keep the output compact and faithful to the legal issue.
+- Do not include any keys beyond those two arrays.
+- Output must remain compact JSON-only.`;
 
 function hasZeroPricing(pricing) {
   return pricing && Number(pricing.prompt) === 0 && Number(pricing.completion) === 0;
@@ -50,11 +63,17 @@ async function openRouterService(prompt) {
     try {
       // The API key is sent only in the request header so credentials stay out
       // of the prompt payload and can continue to be supplied through the environment.
+      // The system prompt locks the model to a strict JSON schema so the
+      // tribunal output stays compact and parseable instead of drifting into
+      // long prose that breaks the React render contract.
       const response = await axios.post(
         OPENROUTER_URL,
         {
           model,
-          messages: [{ role: 'user', content: prompt }]
+          messages: [
+            { role: 'system', content: JSON_ONLY_SYSTEM_PROMPT },
+            { role: 'user', content: prompt }
+          ]
         },
         {
           headers: {

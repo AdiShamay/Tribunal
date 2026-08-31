@@ -100,14 +100,31 @@ function App() {
       }
 
       const result = await response.json();
-      const verdicts = result.judges || result.judgeVerdicts || [];
+      const verdicts = Array.isArray(result.judges) ? result.judges : (Array.isArray(result.judgeVerdicts) ? result.judgeVerdicts : []);
+      const normalizedJudges = verdicts.map((verdict, index) => {
+        const verdictText = typeof verdict?.verdict === 'string' ? verdict.verdict : (typeof verdict?.reasoning === 'string' ? verdict.reasoning : '');
+        const decision = verdict?.decision || (verdictText && /not justified/i.test(verdictText) ? 'Not Justified' : 'Justified');
+        const reasoning = verdict?.reasoning || verdictText || 'No reasoning provided.';
+
+        return {
+          name: verdict?.name || judges[index]?.name || `Judge ${index + 1}`,
+          decision,
+          reasoning
+        };
+      });
       setJudges((currentJudges) => currentJudges.map((judge, index) => ({
         ...judge,
-        decision: verdicts[index]?.decision || verdicts[index]?.verdict || judge.decision,
-        reasoning: verdicts[index]?.reasoning || judge.reasoning
+        decision: normalizedJudges[index]?.decision || judge.decision,
+        reasoning: normalizedJudges[index]?.reasoning || judge.reasoning,
+        name: normalizedJudges[index]?.name || judge.name
       })));
 
-      setAdvocateResults(result.advocates || advocateResults);
+      const nextAdvocates = Array.isArray(result.advocates) ? result.advocates : advocateResults;
+      setAdvocateResults(nextAdvocates.map((advocate) => ({
+        ...advocate,
+        name: advocate.name || 'Advocate',
+        argument: advocate.argument || 'No argument provided.'
+      })));
       const responseTelemetry = result.telemetry || {};
       const usage = verdicts.reduce((total, verdict) => ({
         promptTokens: total.promptTokens + (verdict.usage?.promptTokens || 0),

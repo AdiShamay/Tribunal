@@ -1,17 +1,78 @@
+const mongoose = require('mongoose');
 const openRouterService = require('../services/openrouter.service');
+const TribunalCase = require('../models/tribunal-case.model');
 
 const judgeNames = ['Barak', 'Elon', 'Shamgar'];
 
 function getModelContent(response) {
-  return response.data.choices[0].message.content;
+  const content = response?.data?.choices?.[0]?.message?.content;
+  return typeof content === 'string' ? content : '';
 }
 
-function getDecision(content) {
-  return /not justified/i.test(content) ? 'Not Justified' : 'Justified';
+function stripJsonFence(content) {
+  return String(content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+}
+
+function parseJsonPayload(content) {
+  const candidate = stripJsonFence(content);
+
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(candidate);
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+  } catch (error) {
+    // The model occasionally wraps the payload in an object or extra prose.
+    // We trim the outer text and retry with the first full JSON object.
+  }
+
+  const start = candidate.indexOf('{');
+  const end = candidate.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try {
+      return JSON.parse(candidate.slice(start, end + 1));
+    } catch (error) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function getDecision(value) {
+  if (typeof value === 'string' && /not justified/i.test(value)) {
+    return 'Not Justified';
+  }
+  return 'Justified';
+}
+
+function normalizeJudgeData(entry, index) {
+  const verdictText = typeof entry?.verdict === 'string' ? entry.verdict : (typeof entry?.reasoning === 'string' ? entry.reasoning : '');
+  const name = entry?.name || entry?.judge || judgeNames[index] || `Judge ${index + 1}`;
+  const decision = getDecision(verdictText);
+
+  return {
+    name,
+    decision,
+    reasoning: verdictText || 'No reasoning provided.',
+    usage: {}
+  };
+}
+
+function normalizeAdvocateData(entry) {
+  return {
+    name: entry?.name || 'Advocate',
+    argument: typeof entry?.argument === 'string' ? entry.argument : 'No argument provided.'
+  };
 }
 
 async function createVerdict(req, res, next) {
   const {
+    modelMode = 'matrix',
     chargeSheet = '',
     advocates,
     judgePrompts = []
@@ -22,37 +83,69 @@ async function createVerdict(req, res, next) {
   }
 
   try {
-    const promptsByJudge = judgeNames.map((judge, index) => {
-      const requestedPrompt = judgePrompts[index];
-      return {
-        judge,
-        prompt: requestedPrompt?.prompt || chargeSheet
-      };
-    });
+    let judgeResults = [];
+    let normalizedAdvocates = advocates.map(normalizeAdvocateData);
 
-    // Each judge receives an independent call so the response preserves the
-    // separate opinions required by the tribunal protocol.
-    const judgeResults = await Promise.all(promptsByJudge.map(async ({ judge, prompt }) => {
-      const response = await openRouterService(prompt);
-      const reasoning = getModelContent(response);
+    if (modelMode === 'unified') {
+      const response = await openRouterService(`${chargeSheet}\n\nReturn all tribunal output as JSON with judges and advocates arrays. Include the four named advocates in the final output.`);
+      const parsed = parseJsonPayload(getModelContent(response));
+      const incomingJudges = Array.isArray(parsed?.judges) ? parsed.judges : [];
+      const incomingAdvocates = Array.isArray(parsed?.advocates) ? parsed.advocates : [];
 
-      return {
-        name: judge,
-        decision: getDecision(reasoning),
-        reasoning,
-        usage: response.usage || {}
-      };
-    }));
+      judgeResults = incomingJudges.map(normalizeJudgeData);
+      normalizedAdvocates = incomingAdvocates.length ? incomingAdvocates.map(normalizeAdvocateData) : normalizedAdvocates;
+
+      // Persist only when MongoDB is actually connected. This keeps the app
+      // responsive in environments without a live database while still saving
+      // the case when the configured datastore is available.
+      if (process.env.MONGODB_URI && mongoose.connection.readyState === 1) {
+        try {
+          await TribunalCase.create({
+            chargeSheet,
+            advocateArguments: normalizedAdvocates.map((advocate) => ({ role: advocate.name, argument: advocate.argument })),
+            judgeVerdicts: judgeResults.map((judge) => ({
+              judge: judge.name,
+              verdict: judge.decision,
+              reasoning: judge.reasoning
+            }))
+          });
+        } catch (saveError) {
+          console.warn('Unified verdict persistence skipped:', saveError.message);
+        }
+      }
+    } else {
+      const promptsByJudge = judgeNames.map((judge, index) => {
+        const requestedPrompt = judgePrompts[index];
+        return {
+          judge,
+          prompt: requestedPrompt?.prompt || chargeSheet
+        };
+      });
+
+      // Each judge receives an independent call so the response preserves the
+      // separate opinions required by the tribunal protocol.
+      judgeResults = await Promise.all(promptsByJudge.map(async ({ judge, prompt }) => {
+        const response = await openRouterService(prompt);
+        const reasoning = getModelContent(response);
+
+        return {
+          name: judge,
+          decision: getDecision(reasoning),
+          reasoning,
+          usage: response.usage || {}
+        };
+      }));
+    }
 
     const telemetry = judgeResults.reduce((total, judge) => ({
-      promptTokens: total.promptTokens + (judge.usage.promptTokens || 0),
-      completionTokens: total.completionTokens + (judge.usage.completionTokens || 0),
-      totalRunCost: total.totalRunCost + (judge.usage.estimatedCost || 0)
+      promptTokens: total.promptTokens + (judge.usage?.promptTokens || 0),
+      completionTokens: total.completionTokens + (judge.usage?.completionTokens || 0),
+      totalRunCost: total.totalRunCost + (judge.usage?.estimatedCost || 0)
     }), { promptTokens: 0, completionTokens: 0, totalRunCost: 0 });
 
     return res.json({
       judges: judgeResults.map(({ name, decision, reasoning }) => ({ name, decision, reasoning })),
-      advocates,
+      advocates: normalizedAdvocates,
       telemetry
     });
   } catch (error) {

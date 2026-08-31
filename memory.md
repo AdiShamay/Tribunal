@@ -26,6 +26,9 @@
 - Agent instructions (`CLAUDE.md`) configured with tech stack (React, Node.js, Express, MongoDB) and strict TDD workflow.
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
 - TDD testing protocol implemented: 32 tests written and passing.
+- Unified-model generation fixed: the OpenRouter system prompt now enforces JSON-only output with a strict schema, word limits, and compact verdict/argument fields.
+- Frontend verdict normalization fixed: React now reads judge verdicts and advocate arguments from the structured model response and renders both arrays reliably.
+- MongoDB persistence fixed: completed tribunal verdicts are saved as a TribunalCase record after unified-model execution, preserving the same judge and advocate data shown in the UI.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
