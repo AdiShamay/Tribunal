@@ -158,4 +158,21 @@ describe('OpenRouter service', () => {
     expect(requestBody.messages[0].content).toContain('50 words');
     expect(requestBody.messages[0].content).toContain('80 words');
   });
+
+  it('should apply role-specific system prompts for judge and advocate matrix calls', async () => {
+    axios.get.mockResolvedValue({
+      data: { data: [{ id: 'meta-llama/llama-3.1-8b-instruct:free' }] }
+    });
+    axios.post.mockResolvedValue({
+      data: { choices: [{ message: { content: '{"name":"Barak","verdict":"Justified to prevent imminent harm."}' } }] }
+    });
+
+    await openRouterService('Assess whether the killing was justified.', 'judge');
+    await openRouterService('Argue for the defense.', 'advocate');
+
+    expect(axios.post.mock.calls[0][1].messages[0].content).toContain('"name"');
+    expect(axios.post.mock.calls[0][1].messages[0].content).toContain('50 words');
+    expect(axios.post.mock.calls[1][1].messages[0].content).toContain('"argument"');
+    expect(axios.post.mock.calls[1][1].messages[0].content).toContain('80 words');
+  });
 });

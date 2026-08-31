@@ -70,6 +70,14 @@ function normalizeAdvocateData(entry) {
   };
 }
 
+function buildMatrixJudgePrompt(chargeSheet, judge) {
+  return `${chargeSheet}\n\nYou are ${judge}. Return only JSON { "name": "${judge}", "verdict": "..." } with a verdict limited to 50 words. State either 'Justified' or 'Not Justified' at the start.`;
+}
+
+function buildMatrixAdvocatePrompt(chargeSheet, advocateName, side) {
+  return `${chargeSheet}\n\nYou are ${advocateName}, speaking for the ${side}. Return only JSON { "name": "${advocateName}", "argument": "..." } with the argument limited to 80 words.`;
+}
+
 async function createVerdict(req, res, next) {
   const {
     modelMode = 'matrix',
@@ -118,23 +126,70 @@ async function createVerdict(req, res, next) {
         const requestedPrompt = judgePrompts[index];
         return {
           judge,
-          prompt: requestedPrompt?.prompt || chargeSheet
+          prompt: buildMatrixJudgePrompt(requestedPrompt?.prompt || chargeSheet, judge)
         };
       });
 
       // Each judge receives an independent call so the response preserves the
       // separate opinions required by the tribunal protocol.
       judgeResults = await Promise.all(promptsByJudge.map(async ({ judge, prompt }) => {
-        const response = await openRouterService(prompt);
-        const reasoning = getModelContent(response);
+        const response = await openRouterService(prompt, 'judge');
+        const parsed = parseJsonPayload(getModelContent(response));
+        const verdictText = typeof parsed?.verdict === 'string'
+          ? parsed.verdict
+          : (typeof parsed?.reasoning === 'string' ? parsed.reasoning : getModelContent(response));
 
         return {
-          name: judge,
-          decision: getDecision(reasoning),
-          reasoning,
+          name: parsed?.name || judge,
+          decision: getDecision(verdictText),
+          reasoning: verdictText || 'No reasoning provided.',
           usage: response.usage || {}
         };
       }));
+
+      const advocateResults = await Promise.all(advocates.map(async (advocate) => {
+        const response = await openRouterService(
+          buildMatrixAdvocatePrompt(chargeSheet, advocate.name, advocate.side || 'the case'),
+          'advocate'
+        );
+        const parsed = parseJsonPayload(getModelContent(response));
+
+        if (parsed && typeof parsed.argument === 'string') {
+          return {
+            name: parsed.name || advocate.name,
+            argument: parsed.argument,
+            usage: response.usage || {}
+          };
+        }
+
+        return {
+          ...advocate,
+          usage: response.usage || {}
+        };
+      }));
+
+      normalizedAdvocates = advocateResults.map(({ name, argument }) => ({ name, argument }));
+      const advocateTelemetry = advocateResults.reduce((total, advocate) => ({
+        promptTokens: total.promptTokens + (advocate.usage?.promptTokens || 0),
+        completionTokens: total.completionTokens + (advocate.usage?.completionTokens || 0),
+        totalRunCost: total.totalRunCost + (advocate.usage?.estimatedCost || 0)
+      }), { promptTokens: 0, completionTokens: 0, totalRunCost: 0 });
+
+      const telemetry = judgeResults.reduce((total, judge) => ({
+        promptTokens: total.promptTokens + (judge.usage?.promptTokens || 0),
+        completionTokens: total.completionTokens + (judge.usage?.completionTokens || 0),
+        totalRunCost: total.totalRunCost + (judge.usage?.estimatedCost || 0)
+      }), { promptTokens: 0, completionTokens: 0, totalRunCost: 0 });
+
+      telemetry.promptTokens += advocateTelemetry.promptTokens;
+      telemetry.completionTokens += advocateTelemetry.completionTokens;
+      telemetry.totalRunCost += advocateTelemetry.totalRunCost;
+
+      return res.json({
+        judges: judgeResults.map(({ name, decision, reasoning }) => ({ name, decision, reasoning })),
+        advocates: normalizedAdvocates,
+        telemetry
+      });
     }
 
     const telemetry = judgeResults.reduce((total, judge) => ({

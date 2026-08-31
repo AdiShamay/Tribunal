@@ -64,11 +64,11 @@ describe('POST /api/verdict response contract', () => {
     expect(response.body.judges.every(({ reasoning }) => typeof reasoning === 'string')).toBe(true);
     expect(response.body.advocates).toEqual(requestBody.advocates);
     expect(response.body.telemetry).toEqual({
-      promptTokens: 60,
-      completionTokens: 30,
+      promptTokens: 140,
+      completionTokens: 70,
       totalRunCost: 0
     });
-    expect(openRouterService).toHaveBeenCalledTimes(3);
+    expect(openRouterService).toHaveBeenCalledTimes(7);
   });
 
   it('should parse a unified JSON response with judges and advocates from the model output', async () => {
@@ -127,6 +127,49 @@ describe('POST /api/verdict response contract', () => {
       name: 'Jon Snow',
       argument: expect.any(String)
     }));
+  });
+
+  it('should aggregate matrix-mode judge and advocate JSON payloads with role-specific constraints', async () => {
+    openRouterService.mockImplementation(async (prompt, role) => {
+      if (role === 'judge') {
+        return {
+          data: { choices: [{ message: { content: JSON.stringify({ name: 'Barak', verdict: 'Justified to stop imminent harm.' }) } }] },
+          usage: { promptTokens: 11, completionTokens: 7, totalTokens: 18, estimatedCost: 0 }
+        };
+      }
+      if (role === 'advocate') {
+        return {
+          data: { choices: [{ message: { content: JSON.stringify({ name: 'Jon Snow', argument: 'I acted to prevent a massacre from escalating.' }) } }] },
+          usage: { promptTokens: 13, completionTokens: 8, totalTokens: 21, estimatedCost: 0 }
+        };
+      }
+      return {
+        data: { choices: [{ message: { content: 'fallback' } }] },
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: 0 }
+      };
+    });
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'matrix',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [
+        { name: 'Jon Snow', side: 'Defense', argument: 'Existing argument.' },
+        { name: 'Tyrion Lannister', side: 'Defense', argument: 'Existing argument.' },
+        { name: 'Daenerys Targaryen', side: 'Prosecution', argument: 'Existing argument.' },
+        { name: 'Grey Worm', side: 'Prosecution', argument: 'Existing argument.' }
+      ],
+      judgePrompts: [
+        { judge: 'Barak', prompt: 'Assess necessity.' },
+        { judge: 'Elon', prompt: 'Assess proportionality.' },
+        { judge: 'Shamgar', prompt: 'Assess safer alternatives.' }
+      ]
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.judges).toHaveLength(3);
+    expect(response.body.advocates).toHaveLength(4);
+    expect(response.body.judges[0]).toEqual(expect.objectContaining({ name: 'Barak', decision: 'Justified' }));
+    expect(response.body.advocates[0]).toEqual(expect.objectContaining({ name: 'Jon Snow', argument: expect.stringContaining('massacre') }));
   });
 });
 

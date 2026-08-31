@@ -27,6 +27,7 @@
 - Express backend (`app.js`) created with `/api/status` and `/api/verdict` endpoints.
 - TDD testing protocol implemented: 32 tests written and passing.
 - Unified-model generation fixed: the OpenRouter system prompt now enforces JSON-only output with a strict schema, word limits, and compact verdict/argument fields.
+- Multi-model matrix generation fixed: each parallel judge and advocate API call now uses a role-specific JSON-only system prompt that enforces the 50-word judge cap and 80-word advocate cap, while preserving the required JSON structure.
 - Frontend verdict normalization fixed: React now reads judge verdicts and advocate arguments from the structured model response and renders both arrays reliably.
 - MongoDB persistence fixed: completed tribunal verdicts are saved as a TribunalCase record after unified-model execution, preserving the same judge and advocate data shown in the UI.
 

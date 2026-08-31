@@ -11,7 +11,32 @@ const FALLBACK_FREE_MODELS = [
   ...PRIORITIZED_FREE_MODELS,
   'mistralai/mistral-7b-instruct:free'
 ];
-const JSON_ONLY_SYSTEM_PROMPT = `You are the Tribunal's legal reasoning engine.
+
+function buildRoleSystemPrompt(role = 'general') {
+  if (role === 'judge') {
+    return `You are a Tribunal judge.
+JSON-only output is mandatory. Return only valid JSON with no markdown fences, no commentary, no analysis, no extra text.
+The response must match this exact schema:
+{ "name": "...", "verdict": "..." }
+Rules:
+- Include exactly a name and a verdict string.
+- The verdict MUST state either 'Justified' or 'Not Justified' in the first clause and then give a brief reason.
+- judge verdicts MUST NOT exceed 50 words.
+- Keep the output compact and faithful to the case facts.`;
+  }
+
+  if (role === 'advocate') {
+    return `You are a Tribunal advocate.
+JSON-only output is mandatory. Return only valid JSON with no markdown fences, no commentary, no analysis, no extra text.
+The response must match this exact schema:
+{ "name": "...", "argument": "..." }
+Rules:
+- Include exactly a name and an argument string.
+- advocate arguments MUST NOT exceed 80 words.
+- Keep the argument persuasive, legally grounded, and aligned to the advocate's side of the case.`;
+  }
+
+  return `You are the Tribunal's legal reasoning engine.
 JSON-only output is mandatory. Return only valid JSON with no markdown fences, no commentary, no analysis, no extra text.
 The response must match this exact schema:
 { "judges": [ { "name": "...", "verdict": "..." } ], "advocates": [ { "name": "...", "argument": "..." } ] }
@@ -24,6 +49,8 @@ Rules:
 - Use the provided case facts and keep the output compact and faithful to the legal issue.
 - Do not include any keys beyond those two arrays.
 - Output must remain compact JSON-only.`;
+}
+
 
 function hasZeroPricing(pricing) {
   return pricing && Number(pricing.prompt) === 0 && Number(pricing.completion) === 0;
@@ -56,22 +83,21 @@ function isRetryableError(error) {
   return error.response && [429, 500].includes(error.response.status);
 }
 
-async function openRouterService(prompt) {
+async function openRouterService(prompt, role = 'general') {
   const models = await getFreeModels();
 
   for (const model of models) {
     try {
       // The API key is sent only in the request header so credentials stay out
       // of the prompt payload and can continue to be supplied through the environment.
-      // The system prompt locks the model to a strict JSON schema so the
-      // tribunal output stays compact and parseable instead of drifting into
-      // long prose that breaks the React render contract.
+      // The role-specific prompt prevents the matrix model from producing the
+      // verbose free-form prose that previously broke the client contract.
       const response = await axios.post(
         OPENROUTER_URL,
         {
           model,
           messages: [
-            { role: 'system', content: JSON_ONLY_SYSTEM_PROMPT },
+            { role: 'system', content: buildRoleSystemPrompt(role) },
             { role: 'user', content: prompt }
           ]
         },
