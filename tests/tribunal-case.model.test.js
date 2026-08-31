@@ -7,6 +7,9 @@ describe('TribunalCase model', () => {
     expect(TribunalCase.schema.path('chargeSheet').isRequired).toBe(true);
     expect(TribunalCase.schema.path('advocateArguments').instance).toBe('Array');
     expect(TribunalCase.schema.path('judgeVerdicts').instance).toBe('Array');
+    expect(TribunalCase.schema.path('telemetry.promptTokens')).toBeDefined();
+    expect(TribunalCase.schema.path('telemetry.completionTokens')).toBeDefined();
+    expect(TribunalCase.schema.path('telemetry.cost')).toBeDefined();
   });
 
   it('should validate a complete tribunal case without a database connection', () => {

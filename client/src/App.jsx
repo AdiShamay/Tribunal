@@ -42,15 +42,14 @@ function formatCaseDate(dateValue) {
     return 'Unknown date/time';
   }
 
-  return date.toLocaleString('en-US', {
+  return date.toLocaleString('en-GB', {
     year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
+    hour12: false
+  }).replace(', ', ' ');
 }
 
 function normalizeStoredAdvocate(advocate, index) {
@@ -108,7 +107,7 @@ function App() {
     setTelemetry({
       promptTokens: tribunalCase.telemetry?.promptTokens || 0,
       completionTokens: tribunalCase.telemetry?.completionTokens || 0,
-      cost: tribunalCase.telemetry?.totalRunCost || 0
+      cost: tribunalCase.telemetry?.cost ?? tribunalCase.telemetry?.totalRunCost ?? 0
     });
   }
 

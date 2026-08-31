@@ -28,7 +28,7 @@ describe('Tribunal history selection', () => {
       telemetry: {
         promptTokens: 210,
         completionTokens: 95,
-        totalRunCost: 0
+        cost: 1.25
       }
     };
     global.fetch = jest.fn().mockResolvedValue({
@@ -52,7 +52,7 @@ describe('Tribunal history selection', () => {
     expect(screen.getByText('Restored final argument.')).toBeInTheDocument();
     expect(screen.getByText('210')).toBeInTheDocument();
     expect(screen.getByText('95')).toBeInTheDocument();
-    expect(screen.getByText('$0.00')).toBeInTheDocument();
+    expect(screen.getByText('$1.25')).toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith('/api/cases');
   });

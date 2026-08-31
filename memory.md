@@ -32,6 +32,8 @@
 - MongoDB persistence fixed: completed tribunal verdicts are explicitly saved via TribunalCase.create() before the API returns the verdict payload, and any Mongoose failure is logged with a full console.error stack for debugging.
 - React history and restore bugs fixed: the sidebar now shows only a case title, formatted timestamp, and execution mode; selecting a past case restores the saved judges, advocates, and telemetry into the main tribunal view.
 - Actual AI response persistence fixed: both unified and matrix verdict flows now require structured OpenRouter JSON, map generated judge and advocate content to judgeVerdicts and advocateArguments, reject incomplete responses instead of saving placeholders, and persist before res.json().
+- History timestamps now use the Israeli/European 24-hour format DD/MM/YYYY HH:mm without seconds.
+- Telemetry persistence fixed: TribunalCase stores promptTokens, completionTokens, and cost; verdict execution passes the aggregated values into MongoDB, and selecting a saved case restores them to the frontend budget footer.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -59,6 +61,7 @@
 - [x] OpenRouter priority ordering and 429/500 retry resilience verified.
 - [x] Structured OpenRouter API error-response logging verified.
 - [x] Actual structured LLM judge and advocate data persisted to MongoDB and verified with regression coverage.
+- [x] European history date formatting and telemetry persistence/restoration verified with focused and full test coverage.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.

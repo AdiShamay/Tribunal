@@ -40,8 +40,7 @@ describe('Tribunal history view', () => {
     expect(await screen.findByRole('complementary', { name: /tribunal history/i })).toBeInTheDocument();
     expect(screen.getByText('CASE T-002')).toBeInTheDocument();
     expect(screen.getByText('CASE T-001')).toBeInTheDocument();
-    expect(screen.getByText(/3\/14\/2025/i)).toBeInTheDocument();
-    expect(screen.getByText(/8:45:00 pm|8:45 pm/i)).toBeInTheDocument();
+    expect(screen.getByText('14/03/2025 20:45')).toBeInTheDocument();
     expect(screen.getAllByText(/multi-model matrix/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/unified model/i).length).toBeGreaterThan(0);
   });

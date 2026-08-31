@@ -70,10 +70,15 @@ function normalizeAdvocateData(entry) {
   };
 }
 
-function buildPersistedCasePayload({ chargeSheet, judges, advocates, executionMode }) {
+function buildPersistedCasePayload({ chargeSheet, judges, advocates, executionMode, telemetry }) {
   return {
     chargeSheet,
     executionMode,
+    telemetry: {
+      promptTokens: telemetry.promptTokens,
+      completionTokens: telemetry.completionTokens,
+      cost: telemetry.totalRunCost
+    },
     advocateArguments: advocates.map((advocate) => ({
       role: advocate.name,
       argument: advocate.argument
@@ -86,7 +91,7 @@ function buildPersistedCasePayload({ chargeSheet, judges, advocates, executionMo
   };
 }
 
-async function persistVerdictCase({ chargeSheet, judges, advocates, executionMode }) {
+async function persistVerdictCase({ chargeSheet, judges, advocates, executionMode, telemetry }) {
   if (!process.env.MONGODB_URI || mongoose.connection.readyState !== 1) {
     console.warn('Skipping TribunalCase persistence because MongoDB is not connected.', {
       chargeSheet,
@@ -97,7 +102,7 @@ async function persistVerdictCase({ chargeSheet, judges, advocates, executionMod
     return null;
   }
 
-  const payload = buildPersistedCasePayload({ chargeSheet, judges, advocates, executionMode });
+  const payload = buildPersistedCasePayload({ chargeSheet, judges, advocates, executionMode, telemetry });
 
   try {
     const savedCase = await TribunalCase.create(payload);
@@ -149,6 +154,11 @@ async function createVerdict(req, res, next) {
 
       judgeResults = incomingJudges.map(normalizeJudgeData);
       normalizedAdvocates = incomingAdvocates.map(normalizeAdvocateData);
+      telemetry = {
+        promptTokens: response.usage?.promptTokens || 0,
+        completionTokens: response.usage?.completionTokens || 0,
+        totalRunCost: response.usage?.estimatedCost || 0
+      };
 
     } else {
       const promptsByJudge = judgeNames.map((judge, index) => {
@@ -226,7 +236,8 @@ async function createVerdict(req, res, next) {
       chargeSheet,
       executionMode: modelMode === 'unified' ? 'Unified Model' : 'Multi-Model Matrix',
       judges: judgeResults.map(({ name, decision, reasoning }) => ({ name, decision, reasoning })),
-      advocates: normalizedAdvocates
+      advocates: normalizedAdvocates,
+      telemetry
     });
 
     if (persistedCase) {

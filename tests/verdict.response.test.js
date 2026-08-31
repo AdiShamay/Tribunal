@@ -211,12 +211,22 @@ describe('POST /api/verdict response contract', () => {
 
     expect(response.statusCode).toBe(200);
     expect(TribunalCase.create).toHaveBeenCalledWith(expect.objectContaining({
+      telemetry: {
+        promptTokens: 7,
+        completionTokens: 7,
+        cost: 0
+      },
       judgeVerdicts: expect.arrayContaining([
         expect.objectContaining({ judge: 'Barak', reasoning: 'Justified because the threat was imminent.' })
       ]),
       advocateArguments: expect.arrayContaining([
         expect.objectContaining({ role: 'Jon Snow', argument: 'The real AI argument protects the realm.' })
-      ])
+      ]),
+      telemetry: {
+        promptTokens: 7,
+        completionTokens: 7,
+        cost: 0
+      }
     }));
     const savedPayload = TribunalCase.create.mock.calls[0][0];
     expect(savedPayload.advocateArguments).not.toEqual(expect.arrayContaining([
