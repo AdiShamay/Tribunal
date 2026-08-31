@@ -30,6 +30,8 @@
 - Multi-model matrix generation fixed: each parallel judge and advocate API call now uses a role-specific JSON-only system prompt that enforces the 50-word judge cap and 80-word advocate cap, while preserving the required JSON structure.
 - Frontend verdict normalization fixed: React now reads judge verdicts and advocate arguments from the structured model response and renders both arrays reliably.
 - MongoDB persistence fixed: completed tribunal verdicts are explicitly saved via TribunalCase.create() before the API returns the verdict payload, and any Mongoose failure is logged with a full console.error stack for debugging.
+- React history and restore bugs fixed: the sidebar now shows only a case title, formatted timestamp, and execution mode; selecting a past case restores the saved judges, advocates, and telemetry into the main tribunal view.
+- Actual AI response persistence fixed: both unified and matrix verdict flows now require structured OpenRouter JSON, map generated judge and advocate content to judgeVerdicts and advocateArguments, reject incomplete responses instead of saving placeholders, and persist before res.json().
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -56,6 +58,7 @@
 - [x] OpenRouter dynamic free-model discovery and fallback behavior verified.
 - [x] OpenRouter priority ordering and 429/500 retry resilience verified.
 - [x] Structured OpenRouter API error-response logging verified.
+- [x] Actual structured LLM judge and advocate data persisted to MongoDB and verified with regression coverage.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.

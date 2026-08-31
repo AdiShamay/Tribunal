@@ -26,9 +26,17 @@ describe('API route integration', () => {
   beforeEach(() => {
     openRouterService.mockReset();
     TribunalCase.create.mockReset();
-    openRouterService.mockResolvedValue({
+    openRouterService.mockImplementation(async (prompt, role) => ({
       data: {
-        choices: [{ message: { content: 'Model analysis' } }]
+        choices: [{
+          message: {
+            content: role === 'judge'
+              ? JSON.stringify({ name: 'Barak', verdict: 'Justified because the threat was imminent.' })
+              : role === 'advocate'
+                ? JSON.stringify({ name: 'Jon Snow', argument: 'The real AI argument protects the realm.' })
+                : 'Model analysis'
+          }
+        }]
       },
       usage: {
         promptTokens: 10,
@@ -36,7 +44,7 @@ describe('API route integration', () => {
         totalTokens: 16,
         estimatedCost: 0
       }
-    });
+    }));
     TribunalCase.create.mockResolvedValue({
       _id: 'case-001',
       chargeSheet: 'The Realm v. Jon Snow',

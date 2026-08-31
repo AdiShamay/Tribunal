@@ -31,6 +31,58 @@ const advocates = [
   { name: 'Grey Worm', side: 'Prosecution', argument: 'The prosecution argument will appear here after deliberation.' }
 ];
 
+function extractCaseTitle(chargeSheet) {
+  const match = String(chargeSheet || '').match(/CASE\s+T-\d+/i);
+  return match ? match[0].toUpperCase() : 'CASE';
+}
+
+function formatCaseDate(dateValue) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date/time';
+  }
+
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
+function normalizeStoredAdvocate(advocate, index) {
+  const name = advocate?.name || advocate?.role || advocates[index]?.name || 'Advocate';
+  const argument = advocate?.argument || 'No argument provided.';
+  const side = advocate?.side || (['Jon Snow', 'Tyrion Lannister'].includes(name) ? 'Defense' : ['Daenerys Targaryen', 'Grey Worm'].includes(name) ? 'Prosecution' : '');
+
+  return {
+    name,
+    side,
+    argument
+  };
+}
+
+function normalizeStoredJudge(verdict, index) {
+  const verdictText = typeof verdict?.verdict === 'string' ? verdict.verdict : (typeof verdict?.reasoning === 'string' ? verdict.reasoning : '');
+  const decision = verdict?.decision || (verdictText && /not justified/i.test(verdictText) ? 'Not Justified' : 'Justified');
+
+  return {
+    name: verdict?.name || verdict?.judge || initialJudges[index]?.name || `Judge ${index + 1}`,
+    decision,
+    reasoning: verdict?.reasoning || verdictText || 'No reasoning provided.'
+  };
+}
+
+function normalizeHistoryMode(value) {
+  if (value === 'unified' || value === 'Unified Model') {
+    return 'Unified Model';
+  }
+  return 'Multi-Model Matrix';
+}
+
 function App() {
   const [modelMode, setModelMode] = useState('matrix');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,16 +94,17 @@ function App() {
   const [telemetry, setTelemetry] = useState({ promptTokens: 0, completionTokens: 0, cost: 0 });
 
   function restoreCase(tribunalCase) {
+    const savedMode = normalizeHistoryMode(tribunalCase.executionMode || tribunalCase.modelMode || modelMode);
+    setModelMode(savedMode === 'Unified Model' ? 'unified' : 'matrix');
     setActiveChargeSheet(tribunalCase.chargeSheet);
     setJudges((currentJudges) => currentJudges.map((judge, index) => {
       const savedVerdict = tribunalCase.judgeVerdicts?.[index];
-      return savedVerdict ? {
-        name: savedVerdict.judge || judge.name,
-        decision: savedVerdict.verdict || judge.decision,
-        reasoning: savedVerdict.reasoning || judge.reasoning
-      } : judge;
+      return savedVerdict ? normalizeStoredJudge(savedVerdict, index) : judge;
     }));
-    setAdvocateResults(tribunalCase.advocateArguments || advocates);
+    const savedAdvocates = Array.isArray(tribunalCase.advocateArguments)
+      ? tribunalCase.advocateArguments.map(normalizeStoredAdvocate)
+      : advocates;
+    setAdvocateResults(savedAdvocates);
     setTelemetry({
       promptTokens: tribunalCase.telemetry?.promptTokens || 0,
       completionTokens: tribunalCase.telemetry?.completionTokens || 0,
@@ -101,30 +154,13 @@ function App() {
 
       const result = await response.json();
       const verdicts = Array.isArray(result.judges) ? result.judges : (Array.isArray(result.judgeVerdicts) ? result.judgeVerdicts : []);
-      const normalizedJudges = verdicts.map((verdict, index) => {
-        const verdictText = typeof verdict?.verdict === 'string' ? verdict.verdict : (typeof verdict?.reasoning === 'string' ? verdict.reasoning : '');
-        const decision = verdict?.decision || (verdictText && /not justified/i.test(verdictText) ? 'Not Justified' : 'Justified');
-        const reasoning = verdict?.reasoning || verdictText || 'No reasoning provided.';
+      const normalizedJudges = verdicts.map(normalizeStoredJudge);
+      setJudges(normalizedJudges);
 
-        return {
-          name: verdict?.name || judges[index]?.name || `Judge ${index + 1}`,
-          decision,
-          reasoning
-        };
-      });
-      setJudges((currentJudges) => currentJudges.map((judge, index) => ({
-        ...judge,
-        decision: normalizedJudges[index]?.decision || judge.decision,
-        reasoning: normalizedJudges[index]?.reasoning || judge.reasoning,
-        name: normalizedJudges[index]?.name || judge.name
-      })));
-
-      const nextAdvocates = Array.isArray(result.advocates) ? result.advocates : advocateResults;
-      setAdvocateResults(nextAdvocates.map((advocate) => ({
-        ...advocate,
-        name: advocate.name || 'Advocate',
-        argument: advocate.argument || 'No argument provided.'
-      })));
+      const nextAdvocates = Array.isArray(result.advocates)
+        ? result.advocates.map((advocate, index) => normalizeStoredAdvocate(advocate, index))
+        : advocateResults;
+      setAdvocateResults(nextAdvocates);
       const responseTelemetry = result.telemetry || {};
       const usage = verdicts.reduce((total, verdict) => ({
         promptTokens: total.promptTokens + (verdict.usage?.promptTokens || 0),
@@ -157,16 +193,12 @@ function App() {
                 className="history-item"
                 key={tribunalCase._id}
                 type="button"
-                aria-label={`Restore ${tribunalCase._id}`}
+                aria-label={`Restore ${extractCaseTitle(tribunalCase.chargeSheet)}`}
                 onClick={() => restoreCase(tribunalCase)}
               >
-                <div className="history-case-id">{tribunalCase._id}</div>
-                <h3>{tribunalCase.chargeSheet}</h3>
-                {tribunalCase.judgeVerdicts?.map((verdict) => (
-                  <p className="history-verdict" key={`${tribunalCase._id}-${verdict.judge}`}>
-                    {verdict.judge} / {verdict.verdict}
-                  </p>
-                ))}
+                <div className="history-case-id">{extractCaseTitle(tribunalCase.chargeSheet)}</div>
+                <div className="history-date-time">{formatCaseDate(tribunalCase.createdAt)}</div>
+                <div className="history-mode">{normalizeHistoryMode(tribunalCase.executionMode || tribunalCase.modelMode || modelMode)}</div>
               </button>
             ))}
           </div>

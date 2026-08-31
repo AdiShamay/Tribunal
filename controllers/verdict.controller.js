@@ -70,9 +70,10 @@ function normalizeAdvocateData(entry) {
   };
 }
 
-function buildPersistedCasePayload({ chargeSheet, judges, advocates }) {
+function buildPersistedCasePayload({ chargeSheet, judges, advocates, executionMode }) {
   return {
     chargeSheet,
+    executionMode,
     advocateArguments: advocates.map((advocate) => ({
       role: advocate.name,
       argument: advocate.argument
@@ -80,12 +81,12 @@ function buildPersistedCasePayload({ chargeSheet, judges, advocates }) {
     judgeVerdicts: judges.map((judge) => ({
       judge: judge.name,
       verdict: judge.decision,
-      reasoning: judge.reasoning || judge.reasoning || ''
+      reasoning: judge.reasoning || ''
     }))
   };
 }
 
-async function persistVerdictCase({ chargeSheet, judges, advocates }) {
+async function persistVerdictCase({ chargeSheet, judges, advocates, executionMode }) {
   if (!process.env.MONGODB_URI || mongoose.connection.readyState !== 1) {
     console.warn('Skipping TribunalCase persistence because MongoDB is not connected.', {
       chargeSheet,
@@ -96,7 +97,7 @@ async function persistVerdictCase({ chargeSheet, judges, advocates }) {
     return null;
   }
 
-  const payload = buildPersistedCasePayload({ chargeSheet, judges, advocates });
+  const payload = buildPersistedCasePayload({ chargeSheet, judges, advocates, executionMode });
 
   try {
     const savedCase = await TribunalCase.create(payload);
@@ -116,6 +117,13 @@ function buildMatrixAdvocatePrompt(chargeSheet, advocateName, side) {
   return `${chargeSheet}\n\nYou are ${advocateName}, speaking for the ${side}. Return only JSON { "name": "${advocateName}", "argument": "..." } with the argument limited to 80 words.`;
 }
 
+function requireStructuredArray(value, field, minimumLength) {
+  if (!Array.isArray(value) || value.length < minimumLength) {
+    throw new Error(`OpenRouter response did not contain a complete ${field} array.`);
+  }
+  return value;
+}
+
 async function createVerdict(req, res, next) {
   const {
     modelMode = 'matrix',
@@ -131,15 +139,16 @@ async function createVerdict(req, res, next) {
   try {
     let judgeResults = [];
     let normalizedAdvocates = advocates.map(normalizeAdvocateData);
+    let telemetry;
 
     if (modelMode === 'unified') {
       const response = await openRouterService(`${chargeSheet}\n\nReturn all tribunal output as JSON with judges and advocates arrays. Include the four named advocates in the final output.`);
       const parsed = parseJsonPayload(getModelContent(response));
-      const incomingJudges = Array.isArray(parsed?.judges) ? parsed.judges : [];
-      const incomingAdvocates = Array.isArray(parsed?.advocates) ? parsed.advocates : [];
+      const incomingJudges = requireStructuredArray(parsed?.judges, 'judges', 1);
+      const incomingAdvocates = requireStructuredArray(parsed?.advocates, 'advocates', 1);
 
       judgeResults = incomingJudges.map(normalizeJudgeData);
-      normalizedAdvocates = incomingAdvocates.length ? incomingAdvocates.map(normalizeAdvocateData) : normalizedAdvocates;
+      normalizedAdvocates = incomingAdvocates.map(normalizeAdvocateData);
 
     } else {
       const promptsByJudge = judgeNames.map((judge, index) => {
@@ -155,9 +164,10 @@ async function createVerdict(req, res, next) {
       judgeResults = await Promise.all(promptsByJudge.map(async ({ judge, prompt }) => {
         const response = await openRouterService(prompt, 'judge');
         const parsed = parseJsonPayload(getModelContent(response));
-        const verdictText = typeof parsed?.verdict === 'string'
-          ? parsed.verdict
-          : (typeof parsed?.reasoning === 'string' ? parsed.reasoning : getModelContent(response));
+        if (!parsed || typeof parsed.verdict !== 'string' || !parsed.verdict.trim()) {
+          throw new Error(`OpenRouter judge response for ${judge} was not valid structured JSON.`);
+        }
+        const verdictText = parsed.verdict;
 
         return {
           name: parsed?.name || judge,
@@ -174,16 +184,13 @@ async function createVerdict(req, res, next) {
         );
         const parsed = parseJsonPayload(getModelContent(response));
 
-        if (parsed && typeof parsed.argument === 'string') {
-          return {
-            name: parsed.name || advocate.name,
-            argument: parsed.argument,
-            usage: response.usage || {}
-          };
+        if (!parsed || typeof parsed.argument !== 'string' || !parsed.argument.trim()) {
+          throw new Error(`OpenRouter advocate response for ${advocate.name} was not valid structured JSON.`);
         }
 
         return {
-          ...advocate,
+          name: parsed.name || advocate.name,
+          argument: parsed.argument,
           usage: response.usage || {}
         };
       }));
@@ -195,7 +202,7 @@ async function createVerdict(req, res, next) {
         totalRunCost: total.totalRunCost + (advocate.usage?.estimatedCost || 0)
       }), { promptTokens: 0, completionTokens: 0, totalRunCost: 0 });
 
-      const telemetry = judgeResults.reduce((total, judge) => ({
+      telemetry = judgeResults.reduce((total, judge) => ({
         promptTokens: total.promptTokens + (judge.usage?.promptTokens || 0),
         completionTokens: total.completionTokens + (judge.usage?.completionTokens || 0),
         totalRunCost: total.totalRunCost + (judge.usage?.estimatedCost || 0)
@@ -205,21 +212,19 @@ async function createVerdict(req, res, next) {
       telemetry.completionTokens += advocateTelemetry.completionTokens;
       telemetry.totalRunCost += advocateTelemetry.totalRunCost;
 
-      return res.json({
-        judges: judgeResults.map(({ name, decision, reasoning }) => ({ name, decision, reasoning })),
-        advocates: normalizedAdvocates,
-        telemetry
-      });
     }
 
-    const telemetry = judgeResults.reduce((total, judge) => ({
-      promptTokens: total.promptTokens + (judge.usage?.promptTokens || 0),
-      completionTokens: total.completionTokens + (judge.usage?.completionTokens || 0),
-      totalRunCost: total.totalRunCost + (judge.usage?.estimatedCost || 0)
-    }), { promptTokens: 0, completionTokens: 0, totalRunCost: 0 });
+    if (!telemetry) {
+      telemetry = judgeResults.reduce((total, judge) => ({
+        promptTokens: total.promptTokens + (judge.usage?.promptTokens || 0),
+        completionTokens: total.completionTokens + (judge.usage?.completionTokens || 0),
+        totalRunCost: total.totalRunCost + (judge.usage?.estimatedCost || 0)
+      }), { promptTokens: 0, completionTokens: 0, totalRunCost: 0 });
+    }
 
     const persistedCase = await persistVerdictCase({
       chargeSheet,
+      executionMode: modelMode === 'unified' ? 'Unified Model' : 'Multi-Model Matrix',
       judges: judgeResults.map(({ name, decision, reasoning }) => ({ name, decision, reasoning })),
       advocates: normalizedAdvocates
     });

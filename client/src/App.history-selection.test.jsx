@@ -12,11 +12,13 @@ describe('Tribunal history selection', () => {
     const savedCase = {
       _id: 'case-001',
       chargeSheet: 'CASE T-001: Restored charge sheet',
+      executionMode: 'Unified Model',
+      createdAt: '2025-03-14T18:45:00Z',
       advocateArguments: [
-        { name: 'Jon Snow', side: 'Defense', argument: 'Restored defense argument.' },
-        { name: 'Tyrion Lannister', side: 'Defense', argument: 'Restored strategic argument.' },
-        { name: 'Daenerys Targaryen', side: 'Prosecution', argument: 'Restored prosecution argument.' },
-        { name: 'Grey Worm', side: 'Prosecution', argument: 'Restored final argument.' }
+        { role: 'Jon Snow', argument: 'Restored defense argument.' },
+        { role: 'Tyrion Lannister', argument: 'Restored strategic argument.' },
+        { role: 'Daenerys Targaryen', argument: 'Restored prosecution argument.' },
+        { role: 'Grey Worm', argument: 'Restored final argument.' }
       ],
       judgeVerdicts: [
         { judge: 'Barak', verdict: 'Justified', reasoning: 'Restored Barak reasoning.' },
@@ -36,12 +38,13 @@ describe('Tribunal history selection', () => {
 
     render(<App />);
 
-    const historyItem = await screen.findByRole('button', { name: /case-001/i });
+    const historyItem = await screen.findByRole('button', { name: /restore case t-001/i });
     fireEvent.click(historyItem);
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('CASE T-001: Restored charge sheet')).toBeInTheDocument();
     });
+    expect(screen.getAllByText('Unified Model').length).toBeGreaterThan(0);
     expect(screen.getByText('Restored Barak reasoning.')).toBeInTheDocument();
     expect(screen.getByText('Not Justified')).toBeInTheDocument();
     expect(screen.getByText('Restored Elon reasoning.')).toBeInTheDocument();

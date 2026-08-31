@@ -9,12 +9,15 @@ describe('Tribunal history view', () => {
   });
 
   it('should fetch and display past tribunal cases in a history sidebar', async () => {
+    const today = new Date('2025-03-14T18:45:00Z');
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => [
         {
           _id: 'case-002',
           chargeSheet: 'Case T-002: The Wall v. The Night King',
+          createdAt: today.toISOString(),
+          executionMode: 'Multi-Model Matrix',
           judgeVerdicts: [
             { judge: 'Barak', verdict: 'Justified', reasoning: 'The response was necessary.' }
           ]
@@ -22,6 +25,8 @@ describe('Tribunal history view', () => {
         {
           _id: 'case-001',
           chargeSheet: 'Case T-001: The Realm v. Jon Snow',
+          createdAt: new Date('2025-03-13T09:30:00Z').toISOString(),
+          executionMode: 'Unified Model',
           judgeVerdicts: [
             { judge: 'Elon', verdict: 'Not Justified', reasoning: 'Alternatives existed.' }
           ]
@@ -33,10 +38,12 @@ describe('Tribunal history view', () => {
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/cases'));
     expect(await screen.findByRole('complementary', { name: /tribunal history/i })).toBeInTheDocument();
-    expect(screen.getByText('Case T-002: The Wall v. The Night King')).toBeInTheDocument();
-    expect(screen.getByText('Case T-001: The Realm v. Jon Snow')).toBeInTheDocument();
-    expect(screen.getByText(/barak.*justified/i)).toBeInTheDocument();
-    expect(screen.getByText(/elon.*not justified/i)).toBeInTheDocument();
+    expect(screen.getByText('CASE T-002')).toBeInTheDocument();
+    expect(screen.getByText('CASE T-001')).toBeInTheDocument();
+    expect(screen.getByText(/3\/14\/2025/i)).toBeInTheDocument();
+    expect(screen.getByText(/8:45:00 pm|8:45 pm/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/multi-model matrix/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/unified model/i).length).toBeGreaterThan(0);
   });
 
   it('should show an empty state when no previous cases exist', async () => {

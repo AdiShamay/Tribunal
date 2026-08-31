@@ -1,7 +1,10 @@
 jest.mock('../services/openrouter.service', () => jest.fn());
+jest.mock('../models/tribunal-case.model', () => ({ create: jest.fn() }));
 
 const http = require('http');
 const openRouterService = require('../services/openrouter.service');
+const TribunalCase = require('../models/tribunal-case.model');
+const mongoose = require('mongoose');
 const app = require('../app');
 let activePort;
 
@@ -21,16 +24,20 @@ describe('POST /api/verdict response contract', () => {
 
   beforeEach(() => {
     openRouterService.mockReset();
-    openRouterService.mockResolvedValue({
-      data: {
-        choices: [{ message: { content: 'Model-generated tribunal analysis.' } }]
-      },
-      usage: {
-        promptTokens: 20,
-        completionTokens: 10,
-        totalTokens: 30,
-        estimatedCost: 0
-      }
+    TribunalCase.create.mockReset();
+    TribunalCase.create.mockResolvedValue({ _id: 'saved-case-001' });
+    Object.defineProperty(mongoose.connection, 'readyState', { configurable: true, value: 1 });
+    openRouterService.mockImplementation(async (prompt, role) => {
+      const judge = prompt.includes('Elon') ? 'Elon' : prompt.includes('Shamgar') ? 'Shamgar' : 'Barak';
+      const advocate = ['Tyrion Lannister', 'Daenerys Targaryen', 'Grey Worm'].find((name) => prompt.includes(name)) || 'Jon Snow';
+      const content = role === 'judge'
+        ? JSON.stringify({ name: judge, verdict: 'Justified because the threat was imminent.' })
+        : JSON.stringify({ name: advocate, argument: advocate === 'Jon Snow' ? 'Defense argument.' : advocate === 'Tyrion Lannister' ? 'Strategic defense argument.' : advocate === 'Daenerys Targaryen' ? 'Prosecution argument.' : 'Final prosecution argument.' });
+
+      return {
+        data: { choices: [{ message: { content } }] },
+        usage: { promptTokens: 20, completionTokens: 10, totalTokens: 30, estimatedCost: 0 }
+      };
     });
   });
 
@@ -170,6 +177,52 @@ describe('POST /api/verdict response contract', () => {
     expect(response.body.advocates).toHaveLength(4);
     expect(response.body.judges[0]).toEqual(expect.objectContaining({ name: 'Barak', decision: 'Justified' }));
     expect(response.body.advocates[0]).toEqual(expect.objectContaining({ name: 'Jon Snow', argument: expect.stringContaining('massacre') }));
+  });
+
+  it('should persist parsed matrix AI data instead of the submitted placeholders before responding', async () => {
+    openRouterService.mockImplementation(async (prompt, role) => ({
+      data: {
+        choices: [{
+          message: {
+            content: role === 'judge'
+              ? JSON.stringify({ name: prompt.includes('Elon') ? 'Elon' : prompt.includes('Shamgar') ? 'Shamgar' : 'Barak', verdict: 'Justified because the threat was imminent.' })
+              : JSON.stringify({ name: prompt.includes('Tyrion') ? 'Tyrion Lannister' : prompt.includes('Daenerys') ? 'Daenerys Targaryen' : prompt.includes('Grey Worm') ? 'Grey Worm' : 'Jon Snow', argument: 'The real AI argument protects the realm.' })
+          }
+        }]
+      },
+      usage: { promptTokens: 1, completionTokens: 1, estimatedCost: 0 }
+    }));
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'matrix',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [
+        { name: 'Jon Snow', side: 'Defense', argument: 'The defense argument will appear here after deliberation.' },
+        { name: 'Tyrion Lannister', side: 'Defense', argument: 'The defense argument will appear here after deliberation.' },
+        { name: 'Daenerys Targaryen', side: 'Prosecution', argument: 'The prosecution argument will appear here after deliberation.' },
+        { name: 'Grey Worm', side: 'Prosecution', argument: 'The prosecution argument will appear here after deliberation.' }
+      ],
+      judgePrompts: [
+        { judge: 'Barak', prompt: 'Assess Barak.' },
+        { judge: 'Elon', prompt: 'Assess Elon.' },
+        { judge: 'Shamgar', prompt: 'Assess Shamgar.' }
+      ]
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(TribunalCase.create).toHaveBeenCalledWith(expect.objectContaining({
+      judgeVerdicts: expect.arrayContaining([
+        expect.objectContaining({ judge: 'Barak', reasoning: 'Justified because the threat was imminent.' })
+      ]),
+      advocateArguments: expect.arrayContaining([
+        expect.objectContaining({ role: 'Jon Snow', argument: 'The real AI argument protects the realm.' })
+      ])
+    }));
+    const savedPayload = TribunalCase.create.mock.calls[0][0];
+    expect(savedPayload.advocateArguments).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ argument: expect.stringContaining('will appear here after deliberation') })
+    ]));
+    expect(savedPayload.judgeVerdicts).toHaveLength(3);
   });
 });
 

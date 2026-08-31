@@ -17,7 +17,8 @@ const judgeVerdictSchema = new mongoose.Schema({
 const tribunalCaseSchema = new mongoose.Schema({
   chargeSheet: { type: String, required: true },
   advocateArguments: { type: [advocateArgumentSchema], default: [] },
-  judgeVerdicts: { type: [judgeVerdictSchema], default: [] }
-});
+  judgeVerdicts: { type: [judgeVerdictSchema], default: [] },
+  executionMode: { type: String, default: 'Multi-Model Matrix' }
+}, { timestamps: true });
 
 module.exports = mongoose.model('TribunalCase', tribunalCaseSchema);
