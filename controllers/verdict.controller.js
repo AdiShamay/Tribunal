@@ -70,6 +70,44 @@ function normalizeAdvocateData(entry) {
   };
 }
 
+function buildPersistedCasePayload({ chargeSheet, judges, advocates }) {
+  return {
+    chargeSheet,
+    advocateArguments: advocates.map((advocate) => ({
+      role: advocate.name,
+      argument: advocate.argument
+    })),
+    judgeVerdicts: judges.map((judge) => ({
+      judge: judge.name,
+      verdict: judge.decision,
+      reasoning: judge.reasoning || judge.reasoning || ''
+    }))
+  };
+}
+
+async function persistVerdictCase({ chargeSheet, judges, advocates }) {
+  if (!process.env.MONGODB_URI || mongoose.connection.readyState !== 1) {
+    console.warn('Skipping TribunalCase persistence because MongoDB is not connected.', {
+      chargeSheet,
+      judgeCount: judges.length,
+      advocateCount: advocates.length,
+      readyState: mongoose.connection.readyState
+    });
+    return null;
+  }
+
+  const payload = buildPersistedCasePayload({ chargeSheet, judges, advocates });
+
+  try {
+    const savedCase = await TribunalCase.create(payload);
+    console.log('Saved tribunal verdict to MongoDB:', savedCase?._id || 'unknown');
+    return savedCase;
+  } catch (saveError) {
+    console.error('Failed to save TribunalCase to MongoDB. Payload:', JSON.stringify(payload, null, 2), saveError);
+    throw saveError;
+  }
+}
+
 function buildMatrixJudgePrompt(chargeSheet, judge) {
   return `${chargeSheet}\n\nYou are ${judge}. Return only JSON { "name": "${judge}", "verdict": "..." } with a verdict limited to 50 words. State either 'Justified' or 'Not Justified' at the start.`;
 }
@@ -103,24 +141,6 @@ async function createVerdict(req, res, next) {
       judgeResults = incomingJudges.map(normalizeJudgeData);
       normalizedAdvocates = incomingAdvocates.length ? incomingAdvocates.map(normalizeAdvocateData) : normalizedAdvocates;
 
-      // Persist only when MongoDB is actually connected. This keeps the app
-      // responsive in environments without a live database while still saving
-      // the case when the configured datastore is available.
-      if (process.env.MONGODB_URI && mongoose.connection.readyState === 1) {
-        try {
-          await TribunalCase.create({
-            chargeSheet,
-            advocateArguments: normalizedAdvocates.map((advocate) => ({ role: advocate.name, argument: advocate.argument })),
-            judgeVerdicts: judgeResults.map((judge) => ({
-              judge: judge.name,
-              verdict: judge.decision,
-              reasoning: judge.reasoning
-            }))
-          });
-        } catch (saveError) {
-          console.warn('Unified verdict persistence skipped:', saveError.message);
-        }
-      }
     } else {
       const promptsByJudge = judgeNames.map((judge, index) => {
         const requestedPrompt = judgePrompts[index];
@@ -197,6 +217,16 @@ async function createVerdict(req, res, next) {
       completionTokens: total.completionTokens + (judge.usage?.completionTokens || 0),
       totalRunCost: total.totalRunCost + (judge.usage?.estimatedCost || 0)
     }), { promptTokens: 0, completionTokens: 0, totalRunCost: 0 });
+
+    const persistedCase = await persistVerdictCase({
+      chargeSheet,
+      judges: judgeResults.map(({ name, decision, reasoning }) => ({ name, decision, reasoning })),
+      advocates: normalizedAdvocates
+    });
+
+    if (persistedCase) {
+      console.log('Verdict persisted before response:', persistedCase._id || 'no-id');
+    }
 
     return res.json({
       judges: judgeResults.map(({ name, decision, reasoning }) => ({ name, decision, reasoning })),
