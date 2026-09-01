@@ -10,22 +10,39 @@ function getModelContent(response) {
   return typeof content === 'string' ? content : '';
 }
 
-function stripJsonFence(content) {
-  return String(content || '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+function sanitizeJSON(rawText) {
+  const markdownFreeText = String(rawText || '')
+    .replace(/```(json)?/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
+  if (!markdownFreeText) {
+    return '';
+  }
+
+  const objectStart = markdownFreeText.indexOf('{');
+  const arrayStart = markdownFreeText.indexOf('[');
+  const startCandidates = [objectStart, arrayStart].filter((index) => index !== -1);
+  const objectEnd = markdownFreeText.lastIndexOf('}');
+  const arrayEnd = markdownFreeText.lastIndexOf(']');
+  const endCandidates = [objectEnd, arrayEnd].filter((index) => index !== -1);
+
+  if (startCandidates.length === 0 || endCandidates.length === 0) {
+    return '';
+  }
+
+  const start = Math.min(...startCandidates);
+  const end = Math.max(...endCandidates);
+
+  return end >= start ? markdownFreeText.slice(start, end + 1) : '';
 }
 
 function parseJsonPayload(content) {
-  const sanitized = stripJsonFence(content);
+  const candidate = sanitizeJSON(content);
 
-  if (!sanitized) {
+  if (!candidate) {
     return null;
   }
-
-  const start = sanitized.indexOf('{');
-  const end = sanitized.lastIndexOf('}');
-  const candidate = start !== -1 && end > start
-    ? sanitized.slice(start, end + 1)
-    : sanitized;
 
   try {
     const parsed = JSON.parse(candidate);
@@ -183,8 +200,10 @@ async function createVerdict(req, res, next) {
       // separate opinions required by the tribunal protocol.
       judgeResults = await Promise.all(promptsByJudge.map(async ({ judge, prompt }) => {
         const response = await openRouterService(prompt, 'judge');
-        const parsed = parseJsonPayload(getModelContent(response));
+        const rawText = getModelContent(response);
+        const parsed = parseJsonPayload(rawText);
         if (!parsed || typeof parsed.verdict !== 'string' || !parsed.verdict.trim()) {
+          console.error('RAW LLM OUTPUT:', rawText);
           throw new Error(`OpenRouter judge response for ${judge} was not valid structured JSON.`);
         }
         const verdictText = parsed.verdict;
@@ -202,9 +221,11 @@ async function createVerdict(req, res, next) {
           buildMatrixAdvocatePrompt(chargeSheet, advocate.name, advocate.side || 'the case'),
           'advocate'
         );
-        const parsed = parseJsonPayload(getModelContent(response));
+        const rawText = getModelContent(response);
+        const parsed = parseJsonPayload(rawText);
 
         if (!parsed || typeof parsed.argument !== 'string' || !parsed.argument.trim()) {
+          console.error('RAW LLM OUTPUT:', rawText);
           throw new Error(`OpenRouter advocate response for ${advocate.name} was not valid structured JSON.`);
         }
 
@@ -265,5 +286,6 @@ async function createVerdict(req, res, next) {
 }
 
 module.exports = {
-  createVerdict
+  createVerdict,
+  sanitizeJSON
 };

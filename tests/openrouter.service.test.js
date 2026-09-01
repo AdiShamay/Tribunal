@@ -163,6 +163,17 @@ describe('OpenRouter service', () => {
     expect(requestBody.messages[0].content).toContain('80 words');
   });
 
+  it('should allow enough completion tokens for the unified tribunal JSON payload', async () => {
+    axios.get.mockResolvedValue({
+      data: { data: [{ id: 'meta-llama/llama-3.1-8b-instruct:free' }] }
+    });
+    axios.post.mockResolvedValue({ data: { choices: [] } });
+
+    await openRouterService('Assess the case.');
+
+    expect(axios.post.mock.calls[0][1].max_tokens).toBeGreaterThanOrEqual(3000);
+  });
+
   it('should apply role-specific system prompts for judge and advocate matrix calls', async () => {
     axios.get.mockResolvedValue({
       data: { data: [{ id: 'meta-llama/llama-3.1-8b-instruct:free' }] }

@@ -6,6 +6,7 @@ const openRouterService = require('../services/openrouter.service');
 const TribunalCase = require('../models/tribunal-case.model');
 const mongoose = require('mongoose');
 const app = require('../app');
+const { sanitizeJSON } = require('../controllers/verdict.controller');
 let activePort;
 
 describe('POST /api/verdict response contract', () => {
@@ -191,6 +192,48 @@ describe('POST /api/verdict response contract', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body.judges).toHaveLength(3);
     expect(response.body.advocates).toHaveLength(4);
+  });
+
+  it('should extract array-root JSON after aggressively stripping markdown and prose', async () => {
+    const payload = [
+      { name: 'Barak', verdict: 'Justified.' },
+      { name: 'Elon', verdict: 'Justified.' },
+      { name: 'Shamgar', verdict: 'Justified.' }
+    ];
+    openRouterService.mockResolvedValue({
+      data: { choices: [{ message: { content: `Result: \`\`\`JSON\n${JSON.stringify(payload)}\n\`\`\` End.` } }] },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+
+    expect(sanitizeJSON(`Result: \`\`\`JSON\n${JSON.stringify(payload)}\n\`\`\` End.`)).toBe(JSON.stringify(payload));
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'matrix',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', side: 'Defense', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
+    expect(response.statusCode).toBe(500);
+  });
+
+  it('should log the raw output before rejecting invalid structured JSON', async () => {
+    const rawText = 'The tribunal response was interrupted before JSON completed.';
+    openRouterService.mockResolvedValue({
+      data: { choices: [{ message: { content: rawText } }] },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'matrix',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', side: 'Defense', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(consoleErrorSpy).toHaveBeenCalledWith('RAW LLM OUTPUT:', rawText);
   });
 
   it('should aggregate matrix-mode judge and advocate JSON payloads with role-specific constraints', async () => {

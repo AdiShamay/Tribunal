@@ -102,6 +102,7 @@ async function openRouterService(prompt, role = 'general') {
         OPENROUTER_URL,
         {
           model,
+          max_tokens: 3000,
           messages: [
             { role: 'system', content: buildRoleSystemPrompt(role) },
             { role: 'user', content: prompt }
