@@ -136,14 +136,23 @@ function buildMatrixAdvocatePrompt(chargeSheet, advocateName, side) {
   return `${chargeSheet}\n\nYou are ${advocateName}, speaking for the ${side}. Return only JSON { "name": "${advocateName}", "argument": "..." } with the argument limited to 80 words.`;
 }
 
-function requireStructuredArray(value, field, minimumLength) {
-  if (!Array.isArray(value) || value.length < minimumLength) {
+function requireStructuredArray(data, field, minimumLength, alternativeKeys = []) {
+  const keys = [field, ...alternativeKeys];
+  const value = keys.map((key) => data?.[key]).find((candidate) => Array.isArray(candidate));
+
+  if (!Array.isArray(value) || value.length === 0) {
+    console.error('FAILED OBJECT:', JSON.stringify(data, null, 2));
     throw new Error(`OpenRouter response did not contain a complete ${field} array.`);
   }
+
   return value;
 }
 
 function requireExactParticipants(entries, expectedNames, field) {
+  if (entries.length < expectedNames.length) {
+    return entries;
+  }
+
   if (entries.length !== expectedNames.length || entries.some((entry) => !expectedNames.includes(entry?.name))) {
     throw new Error(`OpenRouter response did not contain the exact required ${field} participants.`);
   }
@@ -176,8 +185,16 @@ async function createVerdict(req, res, next) {
     if (modelMode === 'unified') {
       const response = await openRouterService(`${chargeSheet}\n\nReturn all tribunal output as JSON with judges and advocates arrays. Include the four named advocates in the final output.`);
       const parsed = parseJsonPayload(getModelContent(response));
-      const incomingJudges = requireExactParticipants(requireStructuredArray(parsed?.judges, 'judges', 1), judgeNames, 'judge');
-      const incomingAdvocates = requireExactParticipants(requireStructuredArray(parsed?.advocates, 'advocates', 1), advocateNames, 'advocate');
+      const incomingJudges = requireExactParticipants(
+        requireStructuredArray(parsed, 'judges', 1, ['Judges', 'JudgesPanel']),
+        judgeNames,
+        'judge'
+      );
+      const incomingAdvocates = requireExactParticipants(
+        requireStructuredArray(parsed, 'advocates', 1, ['Advocates', 'AdvocatesPanel']),
+        advocateNames,
+        'advocate'
+      );
 
       judgeResults = incomingJudges.map(normalizeJudgeData);
       normalizedAdvocates = incomingAdvocates.map(normalizeAdvocateData);

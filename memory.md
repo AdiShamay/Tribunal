@@ -38,6 +38,7 @@
 - Frontend incomplete-response fallback fixed: the Judges and Advocates panels merge returned data into the canonical seven participant slots so a partial response cannot make UI participants disappear.
 - LLM response sanitization fixed: the verdict parser now removes markdown backticks and extracts the first complete JSON object from conversationally wrapped responses; all OpenRouter role prompts explicitly require raw JSON without markdown or conversational text.
 - Robust JSON extraction fixed: `sanitizeJSON(rawText)` removes markdown fences and extracts the complete substring from the earliest `{` or `[` through the latest `}` or `]`, while invalid matrix responses log their raw LLM output before throwing. OpenRouter requests now allow at least 3000 completion tokens.
+- Unified validation made resilient: judge and advocate arrays now accept canonical and alternate panel keys (`judges`/`Judges`/`JudgesPanel` and equivalent advocate names), partial arrays are handled without completeness errors, and missing arrays log the parsed object with `FAILED OBJECT:` before throwing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -69,6 +70,7 @@
 - [x] Unified participant-name/count enforcement and frontend seven-slot fallback verified with 14 suites and 39 tests.
 - [x] Markdown and conversational LLM response sanitization verified with 14 suites and 40 tests.
 - [x] Robust object-or-array JSON extraction, raw invalid-output logging, and 3000-token completion capacity verified with focused tests and production build.
+- [x] Flexible unified array-key validation, partial-array handling, and failed-object diagnostics verified with 13 suites and 42 tests.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.

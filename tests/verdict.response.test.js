@@ -137,7 +137,43 @@ describe('POST /api/verdict response contract', () => {
     }));
   });
 
-  it('should reject an incomplete unified response instead of persisting it', async () => {
+  it('should accept alternate panel key names in a complete unified response', async () => {
+    openRouterService.mockResolvedValue({
+      data: {
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              JudgesPanel: [
+                { name: 'Barak', verdict: 'Justified.' },
+                { name: 'Elon', verdict: 'Not Justified.' },
+                { name: 'Shamgar', verdict: 'Justified.' }
+              ],
+              Advocates: [
+                { name: 'Jon Snow', argument: 'Defense.' },
+                { name: 'Tyrion Lannister', argument: 'Defense.' },
+                { name: 'Daenerys Targaryen', argument: 'Prosecution.' },
+                { name: 'Grey Worm', argument: 'Prosecution.' }
+              ]
+            })
+          }
+        }]
+      },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'unified',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.judges).toHaveLength(3);
+    expect(response.body.advocates).toHaveLength(4);
+  });
+
+  it('should gracefully return partial unified arrays instead of throwing', async () => {
     openRouterService.mockResolvedValue({
       data: {
         choices: [{
@@ -159,8 +195,28 @@ describe('POST /api/verdict response contract', () => {
       judgePrompts: []
     });
 
+    expect(response.statusCode).toBe(200);
+    expect(response.body.judges).toHaveLength(1);
+    expect(response.body.advocates).toHaveLength(1);
+  });
+
+  it('should log the parsed object before throwing for missing structured arrays', async () => {
+    const data = { result: 'No tribunal arrays returned.' };
+    openRouterService.mockResolvedValue({
+      data: { choices: [{ message: { content: JSON.stringify(data) } }] },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'unified',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
     expect(response.statusCode).toBe(500);
-    expect(TribunalCase.create).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).toHaveBeenCalledWith('FAILED OBJECT:', JSON.stringify(data, null, 2));
   });
 
   it('should sanitize markdown fences and conversational preambles before parsing unified JSON', async () => {
