@@ -162,6 +162,37 @@ describe('POST /api/verdict response contract', () => {
     expect(TribunalCase.create).not.toHaveBeenCalled();
   });
 
+  it('should sanitize markdown fences and conversational preambles before parsing unified JSON', async () => {
+    const payload = {
+      judges: [
+        { name: 'Barak', verdict: 'Justified.' },
+        { name: 'Elon', verdict: 'Justified.' },
+        { name: 'Shamgar', verdict: 'Justified.' }
+      ],
+      advocates: [
+        { name: 'Jon Snow', argument: 'Defense.' },
+        { name: 'Tyrion Lannister', argument: 'Defense.' },
+        { name: 'Daenerys Targaryen', argument: 'Prosecution.' },
+        { name: 'Grey Worm', argument: 'Prosecution.' }
+      ]
+    };
+    openRouterService.mockResolvedValue({
+      data: { choices: [{ message: { content: `Here is the result:\n\`\`\`json\n${JSON.stringify(payload)}\n\`\`\`\nThank you.` } }] },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'unified',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.judges).toHaveLength(3);
+    expect(response.body.advocates).toHaveLength(4);
+  });
+
   it('should aggregate matrix-mode judge and advocate JSON payloads with role-specific constraints', async () => {
     openRouterService.mockImplementation(async (prompt, role) => {
       if (role === 'judge') {

@@ -36,6 +36,7 @@
 - Telemetry persistence fixed: TribunalCase stores promptTokens, completionTokens, and cost; verdict execution passes the aggregated values into MongoDB, and selecting a saved case restores them to the frontend budget footer.
 - Unified Model participant enforcement fixed: the system prompt now requires exactly Barak, Elon, and Shamgar plus Jon Snow, Tyrion Lannister, Daenerys Targaryen, and Grey Worm; incomplete, duplicate, or hallucinated participant lists are rejected before persistence.
 - Frontend incomplete-response fallback fixed: the Judges and Advocates panels merge returned data into the canonical seven participant slots so a partial response cannot make UI participants disappear.
+- LLM response sanitization fixed: the verdict parser now removes markdown backticks and extracts the first complete JSON object from conversationally wrapped responses; all OpenRouter role prompts explicitly require raw JSON without markdown or conversational text.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -65,6 +66,7 @@
 - [x] Actual structured LLM judge and advocate data persisted to MongoDB and verified with regression coverage.
 - [x] European history date formatting and telemetry persistence/restoration verified with focused and full test coverage.
 - [x] Unified participant-name/count enforcement and frontend seven-slot fallback verified with 14 suites and 39 tests.
+- [x] Markdown and conversational LLM response sanitization verified with 14 suites and 40 tests.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.

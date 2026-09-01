@@ -158,6 +158,7 @@ describe('OpenRouter service', () => {
     expect(requestBody.messages[0].content).toContain('EXACTLY 3 judges named: Barak, Elon, Shamgar');
     expect(requestBody.messages[0].content).toContain('EXACTLY 4 advocates named: Jon Snow, Tyrion Lannister, Daenerys Targaryen, Grey Worm');
     expect(requestBody.messages[0].content).toContain('fewer than 7 participants is a failure');
+    expect(requestBody.messages[0].content).toContain('Output raw JSON only. Do not use markdown formatting, code blocks, or conversational text.');
     expect(requestBody.messages[0].content).toContain('50 words');
     expect(requestBody.messages[0].content).toContain('80 words');
   });
@@ -175,7 +176,9 @@ describe('OpenRouter service', () => {
 
     expect(axios.post.mock.calls[0][1].messages[0].content).toContain('"name"');
     expect(axios.post.mock.calls[0][1].messages[0].content).toContain('50 words');
+    expect(axios.post.mock.calls[0][1].messages[0].content).toContain('Output raw JSON only. Do not use markdown formatting, code blocks, or conversational text.');
     expect(axios.post.mock.calls[1][1].messages[0].content).toContain('"argument"');
     expect(axios.post.mock.calls[1][1].messages[0].content).toContain('80 words');
+    expect(axios.post.mock.calls[1][1].messages[0].content).toContain('Output raw JSON only. Do not use markdown formatting, code blocks, or conversational text.');
   });
 });

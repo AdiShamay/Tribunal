@@ -11,15 +11,21 @@ function getModelContent(response) {
 }
 
 function stripJsonFence(content) {
-  return String(content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  return String(content || '').replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
 }
 
 function parseJsonPayload(content) {
-  const candidate = stripJsonFence(content);
+  const sanitized = stripJsonFence(content);
 
-  if (!candidate) {
+  if (!sanitized) {
     return null;
   }
+
+  const start = sanitized.indexOf('{');
+  const end = sanitized.lastIndexOf('}');
+  const candidate = start !== -1 && end > start
+    ? sanitized.slice(start, end + 1)
+    : sanitized;
 
   try {
     const parsed = JSON.parse(candidate);
@@ -29,16 +35,6 @@ function parseJsonPayload(content) {
   } catch (error) {
     // The model occasionally wraps the payload in an object or extra prose.
     // We trim the outer text and retry with the first full JSON object.
-  }
-
-  const start = candidate.indexOf('{');
-  const end = candidate.lastIndexOf('}');
-  if (start !== -1 && end > start) {
-    try {
-      return JSON.parse(candidate.slice(start, end + 1));
-    } catch (error) {
-      return null;
-    }
   }
 
   return null;
