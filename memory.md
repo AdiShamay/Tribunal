@@ -39,6 +39,7 @@
 - LLM response sanitization fixed: the verdict parser now removes markdown backticks and extracts the first complete JSON object from conversationally wrapped responses; all OpenRouter role prompts explicitly require raw JSON without markdown or conversational text.
 - Robust JSON extraction fixed: `sanitizeJSON(rawText)` removes markdown fences and extracts the complete substring from the earliest `{` or `[` through the latest `}` or `]`, while invalid matrix responses log their raw LLM output before throwing. OpenRouter requests now allow at least 3000 completion tokens.
 - Unified validation made resilient: judge and advocate arrays now accept canonical and alternate panel keys (`judges`/`Judges`/`JudgesPanel` and equivalent advocate names), partial arrays are handled without completeness errors, and missing arrays log the parsed object with `FAILED OBJECT:` before throwing.
+- Unified JSON diagnostics strengthened: the exact raw OpenRouter response is logged before sanitization, the Unified Model prompt requires the `{ "judges": [...], "advocates": [...] }` wrapper with no extra text, and null parsing now throws `LLM failed to output JSON` before array validation.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -71,9 +72,10 @@
 - [x] Markdown and conversational LLM response sanitization verified with 14 suites and 40 tests.
 - [x] Robust object-or-array JSON extraction, raw invalid-output logging, and 3000-token completion capacity verified with focused tests and production build.
 - [x] Flexible unified array-key validation, partial-array handling, and failed-object diagnostics verified with 13 suites and 42 tests.
+- [x] Raw Unified Model response logging, strict structural prompt guidance, and clear null-parse error handling verified with 13 suites and 44 tests.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation.
 
 **Active Context/Blockers:**
-- Changed behavior and production build are verified. The full Jest run has an existing fixed-port issue: `tests/server.test.js` cannot bind port 3000 because another process is already using it; the other 13 suites pass (40 tests).
+- Changed behavior and production build are verified. The full Jest run has an existing fixed-port issue: `tests/server.test.js` cannot bind port 3000 because another process is already using it; the other 13 suites pass (44 tests).

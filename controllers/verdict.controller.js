@@ -184,7 +184,12 @@ async function createVerdict(req, res, next) {
 
     if (modelMode === 'unified') {
       const response = await openRouterService(`${chargeSheet}\n\nReturn all tribunal output as JSON with judges and advocates arrays. Include the four named advocates in the final output.`);
-      const parsed = parseJsonPayload(getModelContent(response));
+      const rawText = getModelContent(response);
+      console.error('RAW OPENROUTER RESPONSE:', rawText);
+      const parsed = parseJsonPayload(rawText);
+      if (parsed === null) {
+        throw new Error('LLM failed to output JSON');
+      }
       const incomingJudges = requireExactParticipants(
         requireStructuredArray(parsed, 'judges', 1, ['Judges', 'JudgesPanel']),
         judgeNames,

@@ -159,6 +159,7 @@ describe('OpenRouter service', () => {
     expect(requestBody.messages[0].content).toContain('EXACTLY 4 advocates named: Jon Snow, Tyrion Lannister, Daenerys Targaryen, Grey Worm');
     expect(requestBody.messages[0].content).toContain('fewer than 7 participants is a failure');
     expect(requestBody.messages[0].content).toContain('Output raw JSON only. Do not use markdown formatting, code blocks, or conversational text.');
+    expect(requestBody.messages[0].content).toContain('You MUST wrap your entire response in { "judges": [...], "advocates": [...] }. Do not add any other text.');
     expect(requestBody.messages[0].content).toContain('50 words');
     expect(requestBody.messages[0].content).toContain('80 words');
   });

@@ -219,6 +219,43 @@ describe('POST /api/verdict response contract', () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith('FAILED OBJECT:', JSON.stringify(data, null, 2));
   });
 
+  it('should log the exact raw unified OpenRouter response before parsing', async () => {
+    const rawText = 'The model could not complete the requested response.';
+    openRouterService.mockResolvedValue({
+      data: { choices: [{ message: { content: rawText } }] },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'unified',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(consoleErrorSpy).toHaveBeenCalledWith('RAW OPENROUTER RESPONSE:', rawText);
+  });
+
+  it('should report a clear error when unified JSON parsing returns null', async () => {
+    openRouterService.mockResolvedValue({
+      data: { choices: [{ message: { content: 'not JSON' } }] },
+      usage: { promptTokens: 2, completionTokens: 2, estimatedCost: 0 }
+    });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await postJson('/api/verdict', {
+      modelMode: 'unified',
+      chargeSheet: 'CASE T-001: The Realm v. Jon Snow',
+      advocates: [{ name: 'Jon Snow', argument: 'placeholder' }],
+      judgePrompts: []
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Tribunal error:', expect.objectContaining({ message: 'LLM failed to output JSON' }));
+  });
+
   it('should sanitize markdown fences and conversational preambles before parsing unified JSON', async () => {
     const payload = {
       judges: [

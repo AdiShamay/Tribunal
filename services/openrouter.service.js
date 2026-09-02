@@ -41,6 +41,7 @@ Rules:
   return `You are the Tribunal's legal reasoning engine.
 Output raw JSON only. Do not use markdown formatting, code blocks, or conversational text.
 JSON-only output is mandatory. Return only valid JSON with no markdown fences, no commentary, no analysis, no extra text.
+You MUST wrap your entire response in { "judges": [...], "advocates": [...] }. Do not add any other text.
 The response must match this exact schema:
 { "judges": [ { "name": "...", "verdict": "..." } ], "advocates": [ { "name": "...", "argument": "..." } ] }
 Rules:
