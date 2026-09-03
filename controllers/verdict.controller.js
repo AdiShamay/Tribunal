@@ -185,7 +185,7 @@ async function createVerdict(req, res, next) {
     if (modelMode === 'unified') {
       const response = await openRouterService(`${chargeSheet}\n\nReturn all tribunal output as JSON with judges and advocates arrays. Include the four named advocates in the final output.`);
 
-      console.log('FULL OPENROUTER API RESPONSE:', JSON.stringify(response, null, 2));
+      console.log('OPENROUTER RESPONSE DATA:', response?.data || response?.status || response);
       
       const rawText = getModelContent(response);
 
