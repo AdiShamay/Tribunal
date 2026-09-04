@@ -41,6 +41,7 @@
 - Robust JSON extraction fixed: `sanitizeJSON(rawText)` removes markdown fences and extracts the complete substring from the earliest `{` or `[` through the latest `}` or `]`, while invalid matrix responses log their raw LLM output before throwing. OpenRouter requests now allow at least 3000 completion tokens.
 - Unified validation made resilient: judge and advocate arrays now accept canonical and alternate panel keys (`judges`/`Judges`/`JudgesPanel` and equivalent advocate names), partial arrays are handled without completeness errors, and missing arrays log the parsed object with `FAILED OBJECT:` before throwing.
 - Unified JSON diagnostics strengthened: the exact raw OpenRouter response is logged before sanitization, the Unified Model prompt requires the `{ "judges": [...], "advocates": [...] }` wrapper with no extra text, and null parsing now throws `LLM failed to output JSON` before array validation.
+- Unified verdict diagnostics clarified: the exact message object is serialized with `JSON.stringify()` to avoid circular JSON logging failures, while the separately extracted model text is logged before sanitization and parsing.
 
 **Completed Tasks:**
 - [x] Repository setup and Git configuration.
@@ -74,9 +75,10 @@
 - [x] Robust object-or-array JSON extraction, raw invalid-output logging, and 3000-token completion capacity verified with focused tests and production build.
 - [x] Flexible unified array-key validation, partial-array handling, and failed-object diagnostics verified with 13 suites and 42 tests.
 - [x] Raw Unified Model response logging, strict structural prompt guidance, and clear null-parse error handling verified with 13 suites and 44 tests.
+- [x] Circular-safe exact-message logging and separate extracted-text diagnostics implemented in the unified verdict flow; one existing regression assertion still expects the removed `RAW OPENROUTER RESPONSE:` console.error call.
 
 **Next Immediate Tasks:**
 - Project complete; future work can improve saved-run navigation and metadata presentation. The README was intentionally left unchanged during the documentation refresh.
 
 **Active Context/Blockers:**
-- Changed behavior and production build are verified. The full Jest run has one stale assertion in `tests/server.test.js`: it expects `/unknown` to return 404, while the app.js SPA fallback intentionally serves `client/dist/index.html` with 200 for non-API routes. The other 13 suites pass (46 tests).
+- The three latest commits are implemented. Focused verdict/controller testing has one stale assertion in `tests/verdict.response.test.js`: it expects the removed `RAW OPENROUTER RESPONSE:` console.error call, while the controller now logs the exact message object and extracted text with console.log. The full Jest run also has the pre-existing stale assertion in `tests/server.test.js`: it expects `/unknown` to return 404, while the app.js SPA fallback intentionally serves `client/dist/index.html` with 200 for non-API routes.

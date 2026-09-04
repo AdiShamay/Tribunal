@@ -12,6 +12,8 @@
 - Require structured JSON from unified and matrix model calls, then sanitize wrapped responses before validation.
 - Validate participant identity and required fields before persisting a tribunal case; never save placeholder model output as completed opinion.
 - Preserve independent judge opinions and advocate arguments in both the API response and MongoDB record.
+- When diagnosing OpenRouter responses, serialize the specific message object with `JSON.stringify()` instead of logging a potentially circular response object. Log the exact message content separately from the extracted text used by sanitization and parsing so transport-shape problems can be distinguished from model-output problems.
+- When changing diagnostic log levels or labels, update tests that assert the exact logger call; otherwise behavior can be correct while the regression suite reports a stale expectation.
 
 ## Verification
 
