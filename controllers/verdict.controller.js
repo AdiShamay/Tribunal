@@ -185,10 +185,10 @@ async function createVerdict(req, res, next) {
     if (modelMode === 'unified') {
       const response = await openRouterService(`${chargeSheet}\n\nReturn all tribunal output as JSON with judges and advocates arrays. Include the four named advocates in the final output.`);
 
-      console.log('OPENROUTER RESPONSE DATA:', response?.data || response?.status || response);
+      const messageObj = response?.data?.choices?.[0]?.message || response?.choices?.[0]?.message;
+      console.log('EXACT MESSAGE CONTENT:', JSON.stringify(messageObj, null, 2));
       
       const rawText = getModelContent(response);
-
       console.log('EXTRACTED TEXT (rawText):', rawText);
 
       const parsed = parseJsonPayload(rawText);
